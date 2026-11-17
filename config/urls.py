@@ -13,5 +13,6 @@ urlpatterns = [
     path("students/", include("apps.students.urls")),
     path("papers/", include("apps.papers.urls")),
     path("processing/", include("apps.processing.urls")),
+    path("results/", include("apps.results.urls")),
     path("", include("apps.core.urls")),
 ]

@@ -7,9 +7,9 @@ and performance analytics.
 All processing runs locally. No paid services or external AI APIs are used,
 and examination data never leaves the machine.
 
-> **Status:** Milestones 1–4 are complete: sheet layouts, examinations,
-> the Answer Key Library, class lists, paper upload, processing and manual
-> verification. Marking and results follow milestone by milestone — see
+> **Status:** Milestones 1–5 are complete: sheet layouts, examinations,
+> the Answer Key Library, class lists, paper upload, processing, manual
+> verification and marking. The class results dashboard and reports follow — see
 > [CHANGELOG.md](CHANGELOG.md) and [context.md](context.md).
 
 ## Features available now
@@ -29,6 +29,9 @@ and examination data never leaves the machine.
 - **Manual verification** — uncertain marks, unreadable or duplicate roll
   numbers are reviewed beside magnified crops of the paper; every correction
   is recorded.
+- **Marking** — exact decimal marking against the verified key with negative
+  marking, multiple-mark policy, pass/fail and competition ranking; key or
+  rule changes require explicit re-evaluation and earlier results are kept.
 
 ## How it works
 
@@ -104,6 +107,9 @@ excluded from version control. Sample papers used for validation live in
   sample key compared with its manually verified answers.
 - `apps/exams/tests/` — the full setup workflow through the web interface.
 - `apps/core/tests/` — authentication, page rendering and upload safety.
+- `evaluation/tests/` — marking rules, decimals, negative marking, ranking.
+- `apps/processing/tests/`, `apps/results/tests/` — processing, review,
+  resumability and marking end to end, including the real sample paper.
 
 ## Project layout
 
@@ -115,7 +121,9 @@ apps/answerkeys/ Answer Key Library and key extraction
 apps/students/   Class lists
 apps/papers/     Student paper upload, storage and viewer
 apps/processing/ Background processing, review and corrections
+apps/results/    Stored results, re-evaluation and ranking
 omr/             Stand-alone OMR engine (no Django dependency)
+evaluation/      Stand-alone marking engine (no Django dependency)
 templates/       HTML templates
 static/          CSS and vendored Bootstrap 5, Bootstrap Icons, Chart.js
 data/            Local data (git-ignored)

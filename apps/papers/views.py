@@ -63,8 +63,12 @@ def detail(request, uid):
     siblings = Paper.objects.filter(exam=paper.exam).order_by("sequence")
     prev_paper = siblings.filter(sequence__lt=paper.sequence).order_by("-sequence").first()
     next_paper = siblings.filter(sequence__gt=paper.sequence).first()
+    from apps.results.services import stale_reasons
+
+    result = getattr(paper, "result", None)
     return render(request, "papers/detail.html", {"paper": paper, "exam": paper.exam,
-                                                  "prev_paper": prev_paper, "next_paper": next_paper})
+                                                  "prev_paper": prev_paper, "next_paper": next_paper,
+                                                  "result_stale": stale_reasons(result) if result else []})
 
 
 def page_image(request, uid, page):
@@ -104,6 +108,8 @@ def set_excluded(request, uid):
         messages.success(request, f"Paper {paper.sequence} restored.")
     paper.save(update_fields=["status", "status_note", "updated_at"])
     from apps.processing.engine import check_roll_conflicts
+    from apps.results.services import auto_evaluate
 
     check_roll_conflicts(paper)
+    auto_evaluate(paper)
     return redirect(paper.get_absolute_url())

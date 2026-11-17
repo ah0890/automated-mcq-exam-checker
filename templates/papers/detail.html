@@ -53,6 +53,7 @@
         {% endif %}
       </div>
     </section>
+    {% if paper.result %}{% include "results/_breakdown.html" with result=paper.result stale=result_stale %}{% endif %}
     <section class="panel">
       <div class="panel-head"><div><h2 class="panel-title">Recognition</h2><p class="panel-sub">Roll number and answers</p></div></div>
       <div class="panel-body">

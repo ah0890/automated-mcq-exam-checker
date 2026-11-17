@@ -18,10 +18,10 @@ client product (polished SaaS-quality UI).
 
 ## Current milestone
 
-**Milestone 4 — complete.** Next: **Milestone 5 — Evaluation engine**
-(stand-alone, exact decimal arithmetic; compares final answers with the
-verified key; negative marking, multiple-mark policy, pass/fail, competition
-ranking; stores results per paper; re-evaluation when the key changes).
+**Milestone 5 — complete.** Next: **Milestone 6 — Processing Center polish,
+Class Results dashboard and analytics** (class result table with search /
+sort / filters, competition ranks, Chart.js distributions, question-wise
+analysis, finalize results).
 
 Accuracy terminology (agreed with the user, 2026-11-17): **marks** are judged
 only against the official answer key; **reading accuracy** is judged against
@@ -35,8 +35,8 @@ used to "correct" what was read.
 | 2 | Examinations, sheet layouts, Answer Key Library, students | Done |
 | 3 | Student paper upload and storage | Done |
 | 4 | OMR processing, manual verification UI, accuracy report | Done |
-| 5 | Evaluation engine | Next |
-| 6 | Processing center, results dashboard, analytics | Pending |
+| 5 | Evaluation engine | Done |
+| 6 | Class results dashboard, question analysis, finalize | Next (Processing Center done in M4) |
 | 7 | Excel/PDF reports, backups | Pending |
 | 8 | Testing, security review, documentation | Pending |
 
@@ -52,9 +52,10 @@ used to "correct" what was read.
   `apps/papers` (UploadBatch, SourceFile, Paper; upload, splitting,
   duplicate detection, viewer), `apps/processing` (ProcessingJob,
   Correction; engine, worker, review).
-- Stand-alone packages (no Django imports): `omr/`, and
-  `apps/answerkeys/extraction.py`. The evaluation engine (M5) will also be
-  stand-alone.
+- Stand-alone packages (no Django imports): `omr/`, `evaluation/` and
+  `apps/answerkeys/extraction.py`.
+- `apps/results` (Result per paper, EvaluationRun history) connects papers to
+  the `evaluation` engine.
 - Processing: `ProcessingJob` rows list paper ids; a daemon thread in the
   web process (started on demand by `ensure_worker()`) or the
   `process_papers` command runs queued jobs. Each paper is claimed atomically
@@ -64,6 +65,20 @@ used to "correct" what was read.
   `MCQ_BACKGROUND_PROCESSING=false` processes synchronously (tests).
 
 ### Data model rules
+
+- Results: one `Result` per paper recording the key version, a rules
+  snapshot and a digest of the final answers it was computed from. It is
+  *stale* if the exam's key or rules changed, the answers changed, or the
+  paper is no longer verified. Papers are marked automatically when they
+  become verified (and re-marked after corrections) — but never silently
+  with a different key/rules: if existing results came from another key or
+  rules, the teacher must click Re-evaluate. Each explicit evaluation is an
+  `EvaluationRun` with a per-paper snapshot (history preserved). Ranks are
+  competition ranks over current results of active verified papers.
+- Marking formula (evaluation/engine.py): correct × marks − incorrect ×
+  negative marks (only when enabled); unanswered 0; multiple 0 or incorrect
+  per policy; total not floored at zero (formula taken literally); pass if
+  percentage ≥ passing percentage (computed unrounded).
 
 - Paper recognition fields: `roll_number` + `roll_source` (omr|teacher),
   `answers` {q: {value, status (answered|blank|multiple|uncertain), source
@@ -109,6 +124,10 @@ used to "correct" what was read.
   `worker.py` (enqueue/run/resume/cancel, background thread), `review.py`
   (`save_review`, question/roll crops), management commands
   `process_papers` and `recognition_report`.
+- `evaluation/engine.py` — `MarkingRules`, `Response`, `evaluate()`,
+  `competition_ranks()`.
+- `apps/results/services.py` — `evaluate_paper`, `auto_evaluate`,
+  `evaluate_exam`, `update_ranks`, `stale_reasons`, `summary`.
 - `templates/papers/_uploader.html` + `static/js/uploader.js` — the uploader
   used on the dashboard, the upload page and the examination workspace
   (one request per file with progress; plain form post without JavaScript).
@@ -147,7 +166,7 @@ used to "correct" what was read.
 
 ## Tests actually performed
 
-- `manage.py test`: **89 tests, all passing** (2026-11-17).
+- `manage.py test`: **118 tests, all passing** (2026-11-17).
 - Real sample student sheet: OMR output matches manual ground truth exactly
   (roll number; 46 single answers; 1 multiple; 2 blanks; 1 faint mark →
   manual verification), also under 9 artificial distortions.
@@ -167,6 +186,13 @@ used to "correct" what was read.
   0.13 s) → status polling → job done in 0.9 s, paper in review, no errors.
 - Full review flow on the real paper: Q50 (faint B) confirmed as B by the
   teacher, correction logged, paper verified.
+- Evaluation of the real paper against the real key (after the teacher
+  confirmed Q50 = B): 42 correct, 5 incorrect (Q8, 9, 11, 44, 48), 2
+  unanswered, 1 multiple → 42.00/50, 84.00%, Pass — identical to the manual
+  hand-check done before the engine existed. Evaluation-engine unit tests:
+  18 hand-calculated scenarios (default, negative marking incl. 0.05/0.1
+  decimals, both multiple-mark policies, pass boundary, unresolved refusal,
+  incomplete key, competition ranks with ties).
 - OCR of the same key rendered as an image (benchmark, artificial
   variants): 300 dpi clean 50/50 and 3° tilt 50/50 with 0 wrong; 300 dpi JPEG
   q40 48/50, 0 wrong; heavier noise and ≤ 200 dpi images recover far fewer and
@@ -185,8 +211,9 @@ used to "correct" what was read.
 
 ## Pending work / next steps
 
-1. Milestone 5: evaluation engine package + stored results; marking runs
-   automatically for verified papers; results visible per paper.
+1. Milestone 6: Class Results page (rank table, search/sort/filter, student
+   names from roster), Chart.js analytics, Question Analysis page, Finalize
+   results (locks the examination), dashboard results widgets.
 2. Not yet done (recorded honestly): OCR cross-check of the handwritten
    roll-number boxes and of the printed exam/template ID (pages of the wrong
    sheet design are already rejected by the template-match score).

@@ -1,5 +1,25 @@
 # Changelog
 
+## Milestone 5 — Evaluation engine (2026-11-17)
+
+### Added
+
+- Stand-alone `evaluation` package: exact decimal marking with marks per
+  question, optional negative marking, multiple-mark policy (zero or
+  incorrect), unanswered = zero, pass/fail and competition ranking (ties
+  share a rank). Refuses unresolved answers and incomplete keys.
+- Results stored per paper with the key version, rules and answers they were
+  computed from; papers are marked automatically once verified and re-marked
+  after corrections.
+- Key or rule changes never silently alter results: existing results are kept
+  and shown as out of date until the teacher re-evaluates; every evaluation
+  run is archived with a per-paper snapshot.
+- Examination workspace: results summary (average, highest, lowest, pass /
+  fail), marks, rank and pass/fail per paper; question-by-question result
+  breakdown on the paper and review pages.
+- 29 new tests (118 total), including the real sample paper marked against
+  the real key (42/50, 84%, Pass).
+
 ## Milestone 4 — Processing and manual verification (2026-11-17)
 
 ### Added

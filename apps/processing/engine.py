@@ -102,7 +102,15 @@ def process_paper(paper: Paper, template) -> str:
         paper.save()
         check_roll_conflicts(paper)
         paper.refresh_from_db()
+    _after_change(paper)
     return paper.status
+
+
+def _after_change(paper: Paper) -> None:
+    """Mark the paper if it is verified; keep class ranks current."""
+    from apps.results.services import auto_evaluate
+
+    auto_evaluate(paper)
 
 
 def _store_failure(paper: Paper, code: str, message: str) -> str:

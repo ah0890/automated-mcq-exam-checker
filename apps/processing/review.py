@@ -109,6 +109,9 @@ def save_review(paper: Paper, post, user, confirm: bool) -> list[str]:
     elif paper.status == Paper.Status.PROCESSED and any(f.get("blocking") for f in paper.review_flags):
         paper.status = Paper.Status.NEEDS_REVIEW
         paper.save(update_fields=["status", "updated_at"])
+    from apps.results.services import auto_evaluate
+
+    auto_evaluate(paper)
     return []
 
 

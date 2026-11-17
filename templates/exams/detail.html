@@ -51,8 +51,9 @@
   {% else %}
   <div class="next-action done mb-4">
     <span class="na-ic"><i class="bi bi-check-lg"></i></span>
-    <div class="flex-grow-1"><div class="na-title">All {{ paper_stats.processed }} paper{{ paper_stats.processed|pluralize }} read and verified</div>
-      <div class="na-text">Marking and class results are added with the evaluation engine (Milestone 5).</div></div>
+    <div class="flex-grow-1"><div class="na-title">{% if paper_stats.processed == 1 %}The paper has been{% else %}All {{ paper_stats.processed }} papers have been{% endif %} read, verified{% if results.evaluated and not results.stale %} and marked{% endif %}</div>
+      <div class="na-text">{% if results.stale %}Some results are out of date — re-evaluate below.{% elif results.evaluated %}Class average {{ results.average|floatformat:"-2" }} of {{ results.max_marks|floatformat:"-2" }} · {{ results.passed }} passed · {{ results.failed }} failed.{% else %}Evaluate the papers below.{% endif %}</div></div>
+    <a class="btn btn-light" href="#results">View results</a>
   </div>
   {% endif %}
 {% endif %}
@@ -102,6 +103,37 @@
   </div>
 </section>
 
+<section class="panel mb-4" id="results">
+  <div class="panel-head">
+    <div><h2 class="panel-title">Results</h2>
+      <p class="panel-sub">{% if results.evaluated %}{{ results.evaluated }} of {{ results.papers }} paper{{ results.papers|pluralize }} marked against the verified key{% else %}Papers are marked automatically once they are read and verified{% endif %}</p></div>
+    {% if not exam.is_finalized and exam.answer_key_version and paper_stats.processed %}
+      <form method="post" action="{% url 'results:evaluate' exam.uid %}">{% csrf_token %}
+        <button class="btn {% if results.stale %}btn-primary{% else %}btn-light{% endif %} btn-sm"><i class="bi bi-calculator"></i> {% if results.stale %}Re-evaluate{% else %}Evaluate all{% endif %}</button></form>
+    {% endif %}
+  </div>
+  {% if results.stale %}
+    <div class="px-4 pt-3"><div class="flash warning m-0"><i class="ic bi bi-exclamation-triangle-fill"></i>
+      <div class="small"><strong>{{ results.stale }} result{{ results.stale|pluralize }} out of date.</strong> The answer key, marking rules or a paper's answers changed after marking. Previous results are kept; click <em>Re-evaluate</em> to mark again with the current key and rules.</div></div></div>
+  {% endif %}
+  <div class="panel-body">
+    {% if results.evaluated %}
+      <div class="row g-3">
+        <div class="col-6 col-lg-2"><div class="stat-label">Marked</div><div class="stat-value">{{ results.evaluated }}</div></div>
+        <div class="col-6 col-lg-2"><div class="stat-label">Average</div><div class="stat-value">{{ results.average|floatformat:"-2" }}</div><div class="stat-foot">{{ results.average_pct|floatformat:"-2" }}%</div></div>
+        <div class="col-6 col-lg-2"><div class="stat-label">Highest</div><div class="stat-value">{{ results.highest|floatformat:"-2" }}</div></div>
+        <div class="col-6 col-lg-2"><div class="stat-label">Lowest</div><div class="stat-value">{{ results.lowest|floatformat:"-2" }}</div></div>
+        <div class="col-6 col-lg-2"><div class="stat-label">Passed</div><div class="stat-value text-success">{{ results.passed }}</div></div>
+        <div class="col-6 col-lg-2"><div class="stat-label">Failed</div><div class="stat-value text-danger">{{ results.failed }}</div></div>
+      </div>
+      {% if results.pending %}<div class="small text-muted mt-3"><i class="bi bi-hourglass-split me-1"></i>{{ results.pending }} paper{{ results.pending|pluralize }} not yet marked (awaiting processing or review).</div>{% endif %}
+      <div class="small text-muted mt-2"><i class="bi bi-bar-chart me-1"></i>The full class results dashboard, question analysis and exports arrive in Milestones 6 and 7.</div>
+    {% else %}
+      <div class="small text-muted"><i class="bi bi-info-circle me-1"></i>No papers have been marked yet.</div>
+    {% endif %}
+  </div>
+</section>
+
 <section class="panel mb-4" id="papers">
   <div class="panel-head">
     <div><h2 class="panel-title">Student papers</h2>
@@ -124,7 +156,7 @@
     <form method="post" action="{% url 'processing:reprocess' exam.uid %}" id="reprocessForm">{% csrf_token %}
     <div class="table-responsive" style="max-height:620px">
       <table class="table-x">
-        <thead><tr>{% if can_reprocess %}<th style="width:36px"><input class="form-check-input" type="checkbox" data-select-all aria-label="Select all"></th>{% endif %}<th style="width:64px"></th><th>Paper</th><th>Roll no.</th><th>Answers read</th><th>Source</th><th>Status</th><th></th></tr></thead>
+        <thead><tr>{% if can_reprocess %}<th style="width:36px"><input class="form-check-input" type="checkbox" data-select-all aria-label="Select all"></th>{% endif %}<th style="width:64px"></th><th>Paper</th><th>Roll no.</th><th>Answers read</th><th>Marks</th><th>Rank</th><th>Status</th><th></th></tr></thead>
         <tbody>
         {% for p in papers %}
           <tr{% if p.status == "excluded" %} class="opacity-50"{% endif %}>
@@ -133,8 +165,9 @@
             <td><a class="cell-title" href="{{ p.get_absolute_url }}">Paper {{ p.sequence }}</a>{% if p.is_incomplete %}<div class="cell-sub text-warning-emphasis">Incomplete</div>{% endif %}</td>
             <td class="tabular nowrap">{% if p.roll_number %}<span class="fw-semibold">{{ p.roll_number }}</span>{% if p.roll_source == "teacher" %} <i class="bi bi-pencil-fill text-primary small" title="Entered by teacher"></i>{% endif %}{% elif p.processed_at and p.status != "failed" %}<span class="text-danger small">Unreadable</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
             <td class="small">{% if p.answers %}{% with c=p.answer_counts %}{{ c.answered }} answered{% if c.blank %} · {{ c.blank }} blank{% endif %}{% if c.multiple %} · {{ c.multiple }} multiple{% endif %}{% if c.uncertain %} · <span class="text-warning-emphasis fw-semibold">{{ c.uncertain }} uncertain</span>{% endif %}{% endwith %}{% elif p.status == "failed" %}<span class="text-danger">{{ p.status_note|truncatechars:60 }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
-            <td class="small text-truncate" style="max-width:200px" title="{{ p.source.original_name }} · {{ p.page_label }}">{{ p.source.original_name }}</td>
-            <td><span class="pill {{ p.status_css }}">{{ p.get_status_display }}</span></td>
+            <td class="tabular nowrap">{% if p.result %}<span class="fw-semibold{% if p.result_stale %} text-muted text-decoration-line-through{% endif %}" title="{% if p.result_stale %}Out of date: {{ p.result_stale|join:', ' }}{% endif %}">{{ p.result.obtained|floatformat:"-2" }}</span> <span class="text-muted small">{{ p.result.percentage|floatformat:"-2" }}%</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td class="tabular">{% if p.result and not p.result_stale and p.result.rank %}{{ p.result.rank }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td>{% if p.result and not p.result_stale and p.status == "processed" %}{% if p.result.passed %}<span class="pill pill-success">Pass</span>{% else %}<span class="pill pill-danger">Fail</span>{% endif %}{% else %}<span class="pill {{ p.status_css }}">{{ p.get_status_display }}</span>{% endif %}</td>
             <td class="text-end nowrap">
               {% if p.status == "needs_review" or p.status == "failed" %}<a class="btn btn-primary btn-sm" href="{% url 'processing:review' p.uid %}">Review</a>
               {% elif p.processed_at and p.status == "processed" %}<a class="btn btn-light btn-sm" href="{% url 'processing:review' p.uid %}">Check</a>

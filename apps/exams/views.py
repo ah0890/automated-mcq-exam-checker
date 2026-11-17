@@ -9,6 +9,7 @@ from apps.core.files import data_path
 from apps.core.previews import image_file_response
 
 from apps.papers.services import paper_stats
+from apps.results import services as result_services
 
 from . import services
 from .forms import AssignKeyForm, ExaminationForm, SheetLayoutForm
@@ -46,10 +47,15 @@ def exam_edit(request, uid):
     if exam.is_finalized:
         messages.error(request, "Finalized examinations cannot be edited.")
         return redirect(exam.get_absolute_url())
+    rules_before = result_services.rules_for(exam).as_dict()  # before the form mutates the instance
     form = ExaminationForm(request.POST or None, instance=exam)
     if request.method == "POST" and form.is_valid():
         form.save()
         messages.success(request, "Examination details updated.")
+        result_services.update_ranks(exam)
+        if exam.results.exists() and result_services.rules_for(exam).as_dict() != rules_before:
+            messages.warning(request, "Marking rules changed. Existing results are kept and shown as out of date "
+                                      "until you re-evaluate the examination.")
         return redirect(exam.get_absolute_url())
     return render(request, "exams/form.html", {"form": form, "exam": exam, "layouts": SheetLayout.objects.all()})
 
@@ -58,13 +64,18 @@ def exam_detail(request, uid):
     exam = get_object_or_404(
         Examination.objects.select_related("sheet_layout", "answer_key_version__key", "key_assigned_by"), uid=uid)
     key_form = AssignKeyForm(exam=exam)
-    papers = exam.papers.select_related("source").order_by("sequence")
+    papers = list(exam.papers.select_related("source", "result", "result__key_version").order_by("sequence"))
+    for p in papers:
+        r = getattr(p, "result", None)
+        p.result_stale = result_services.stale_reasons(r) if r else []
     return render(request, "exams/detail.html", {
         "exam": exam, "key_form": key_form, "has_compatible_keys": key_form.fields["version"].queryset.exists(),
         "papers": papers, "paper_stats": paper_stats(exam),
         "active_job": exam.processing_jobs.filter(status__in=["queued", "running"]).first(),
         "last_job": exam.processing_jobs.first(),
         "can_reprocess": not exam.is_finalized and bool(exam.answer_key_version_id),
+        "results": result_services.summary(exam),
+        "last_run": exam.evaluation_runs.first(),
     })
 
 
@@ -80,6 +91,9 @@ def exam_assign_key(request, uid):
         else:
             v = form.cleaned_data["version"]
             messages.success(request, f"Answer key “{v.key.title}” (version {v.number}) attached.")
+            if exam.results.exists():
+                messages.warning(request, "Existing results were calculated with the previous key. They are kept "
+                                          "and shown as out of date until you re-evaluate the examination.")
     else:
         messages.error(request, "Select a verified answer key with the same number of questions.")
     return redirect(exam.get_absolute_url())

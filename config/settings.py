@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "apps.exams",
     "apps.papers",
     "apps.processing",
+    "apps.results",
 ]
 
 MIDDLEWARE = [

@@ -109,6 +109,8 @@
     </div></div>
     {% endif %}
 
+    {% if paper.result %}{% include "results/_breakdown.html" with result=paper.result stale=result_stale %}{% endif %}
+
     {% if corrections %}
     <section class="panel">
       <div class="panel-head"><h2 class="panel-title">Correction history</h2></div>

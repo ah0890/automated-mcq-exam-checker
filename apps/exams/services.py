@@ -72,4 +72,7 @@ def assign_key(exam: Examination, version, user) -> None:
     exam.key_assigned_at = timezone.now()
     exam.key_assigned_by = user
     exam.save(update_fields=["answer_key_version", "key_assigned_at", "key_assigned_by", "updated_at"])
+    from apps.results.services import update_ranks
+
+    update_ranks(exam)  # results from the previous key drop out of the ranking until re-evaluated
     log.info("Examination %s uses answer key %s v%s", exam.uid, version.key.uid, version.number)

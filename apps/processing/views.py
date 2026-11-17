@@ -14,6 +14,13 @@ from . import review, worker
 from .models import Correction, ProcessingJob
 
 
+def _stale(paper):
+    from apps.results.services import stale_reasons
+
+    r = getattr(paper, "result", None)
+    return stale_reasons(r) if r else []
+
+
 def _png(data: bytes) -> HttpResponse:
     resp = HttpResponse(data, content_type="image/png")
     resp["Cache-Control"] = "private, no-cache"
@@ -132,6 +139,7 @@ def review_paper(request, uid):
         "corrections": Correction.objects.filter(paper=paper).select_related("user")[:50],
         "remaining": Paper.objects.filter(exam=paper.exam, status=Paper.Status.NEEDS_REVIEW).count(),
         "student": paper.student,
+        "result_stale": _stale(paper),
     })
 
 
