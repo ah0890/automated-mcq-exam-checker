@@ -18,10 +18,10 @@ client product (polished SaaS-quality UI).
 
 ## Current milestone
 
-**Milestone 6 — complete.** Next: **Milestone 7 — Reports and exports**
-(class result sheet in Excel, individual result cards PDF, examination
-summary PDF, question-analysis report, answer-key export, processing error
-report, examination backup and restore).
+**Milestone 7 — complete.** Next: **Milestone 8 — Testing, security review,
+performance and documentation** (security review of uploads/auth/headers,
+full end-to-end acceptance run, performance check on a larger batch,
+final documentation and report).
 
 Open decision recorded: negative totals are allowed (brief's formula taken
 literally); the user did not ask for a zero floor (2026-11-17).
@@ -40,8 +40,8 @@ used to "correct" what was read.
 | 4 | OMR processing, manual verification UI, accuracy report | Done |
 | 5 | Evaluation engine | Done |
 | 6 | Class results dashboard, question analysis, finalize | Done |
-| 7 | Excel/PDF reports, backups | Next |
-| 8 | Testing, security review, documentation | Pending |
+| 7 | Excel/PDF reports, backups | Done |
+| 8 | Testing, security review, documentation | Next |
 
 ## Architecture
 
@@ -68,6 +68,24 @@ used to "correct" what was read.
   `MCQ_BACKGROUND_PROCESSING=false` processes synchronously (tests).
 
 ### Data model rules
+
+- Reports (`apps/reports`): Excel via OpenPyXL (`excel.py`: class result
+  workbook with results / question analysis / student answers / details
+  sheets; question-analysis workbook; processing error report incl. the
+  correction audit log) and PDF via ReportLab (`pdf.py`: one-page result
+  card per student, examination summary with distribution chart). All
+  reports carry examination details, generation time and FINAL/PROVISIONAL;
+  provisional PDFs have a watermark. PDF font: Segoe UI/Arial TTF if
+  present (Unicode names), else Helvetica.
+- Backups (`backup.py`): examination ZIP = manifest.json (records linked by
+  UUID; users by username; ProcessingJob paper ids stored as UUIDs) +
+  files/<relative path> with SHA-256. Restore verifies every file first,
+  refuses an existing examination or conflicting files, reuses shared
+  layouts/keys, preserves timestamps, re-applies read-only originals.
+  Full backup = SQL dump of the DB (SQLite online backup → iterdump) +
+  data files (excluding backups, logs, secret key). Full backup and restore
+  are superuser-only; `manage.py backup_data --full | --exam UUID |
+  --restore ZIP`.
 
 - Finalization: allowed only when the key is attached, every active paper is
   verified (none awaiting processing, review or failed), every verified paper
@@ -185,7 +203,7 @@ used to "correct" what was read.
 
 ## Tests actually performed
 
-- `manage.py test`: **126 tests, all passing** (2026-11-17).
+- `manage.py test`: **139 tests, all passing** (2026-11-17).
 - Real sample student sheet: OMR output matches manual ground truth exactly
   (roll number; 46 single answers; 1 multiple; 2 blanks; 1 faint mark →
   manual verification), also under 9 artificial distortions.
@@ -217,6 +235,12 @@ used to "correct" what was read.
   with the chosen wrong option), finalize and dashboard — rendered and
   checked visually. Analytics tests use a generated 5-student class with
   known answers (ties, blanks, multiple marks, a pending review).
+- Reports with the real sample: result card (42/50, 84%, PASS, rank 1,
+  incorrect cells Q8/9/11/44/48 shaded with the correct answer), summary PDF
+  and Excel sheet generated and checked visually / by reading the workbook.
+  Report tests read the generated Excel and PDF content; backup tests do a
+  full backup → delete → restore round trip and compare records, results,
+  ranks and files, plus tampered/unsafe archive rejection.
 - OCR of the same key rendered as an image (benchmark, artificial
   variants): 300 dpi clean 50/50 and 3° tilt 50/50 with 0 wrong; 300 dpi JPEG
   q40 48/50, 0 wrong; heavier noise and ≤ 200 dpi images recover far fewer and
@@ -235,9 +259,10 @@ used to "correct" what was read.
 
 ## Pending work / next steps
 
-1. Milestone 7: Excel class result sheet, PDF result cards and examination
-   summary, question-analysis report, processing error report, answer-key
-   export (exists), examination backup/restore; Reports page.
+1. Milestone 8: security review (upload validation, auth on every view,
+   CSRF, headers, logging hygiene), acceptance run of the brief's 16-step
+   workflow on the real samples, performance on a larger synthetic batch,
+   README/user guide, final report.
 2. Not yet done (recorded honestly): OCR cross-check of the handwritten
    roll-number boxes and of the printed exam/template ID (pages of the wrong
    sheet design are already rejected by the template-match score).

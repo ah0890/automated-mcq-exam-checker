@@ -137,6 +137,8 @@
       <div class="d-flex flex-wrap gap-2 mt-3">
         <a class="btn btn-primary btn-sm" href="{% url 'results:class' exam.uid %}"><i class="bi bi-trophy"></i> Class results</a>
         <a class="btn btn-light btn-sm" href="{% url 'results:questions' exam.uid %}"><i class="bi bi-bar-chart-line"></i> Question analysis</a>
+        <a class="btn btn-light btn-sm" href="{% url 'reports:class_excel' exam.uid %}"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
+        <a class="btn btn-light btn-sm" href="{% url 'reports:cards_pdf' exam.uid %}"><i class="bi bi-person-vcard"></i> Result cards</a>
         {% if not exam.is_finalized %}<a class="btn btn-light btn-sm" href="{% url 'results:class' exam.uid %}#finalize"><i class="bi bi-lock"></i> Finalize</a>{% endif %}
       </div>
     {% else %}

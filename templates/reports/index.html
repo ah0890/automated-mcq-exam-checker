@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Reports</span>{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Results</div>
+    <h1 class="page-title">Reports &amp; backups</h1>
+    <p class="page-subtitle">Print-ready reports generated from saved results. Reports for examinations that are not finalized are marked <strong>PROVISIONAL</strong>.</p>
+  </div>
+</header>
+
+<section class="panel mb-4">
+  <div class="panel-head"><div><h2 class="panel-title">Examination reports</h2><p class="panel-sub">Each report includes the examination details and the date it was generated</p></div></div>
+  {% if exams %}
+    <div class="table-responsive"><table class="table-x compact">
+      <thead><tr><th>Examination</th><th>Papers</th><th>Status</th><th>Excel</th><th>PDF</th><th></th></tr></thead>
+      <tbody>
+      {% for e in exams %}
+        <tr>
+          <td><a class="cell-title" href="{% url 'results:class' e.uid %}">{{ e.name }}</a><div class="cell-sub">{{ e.class_section }} · {{ e.exam_date|date:"j M Y" }}</div></td>
+          <td class="tabular">{{ e.papers_total }}<div class="cell-sub">{{ e.marked }} marked</div></td>
+          <td>{% if e.is_finalized %}<span class="pill pill-success">Final</span>{% else %}<span class="pill pill-warning">Provisional</span>{% endif %}</td>
+          <td class="nowrap">
+            <a class="btn btn-light btn-sm" href="{% url 'reports:class_excel' e.uid %}" title="Class result sheet with question analysis and student answers"><i class="bi bi-file-earmark-spreadsheet"></i> Result sheet</a>
+            <a class="btn btn-light btn-sm" href="{% url 'reports:questions_excel' e.uid %}"><i class="bi bi-bar-chart-line"></i> Questions</a>
+            <a class="btn btn-light btn-sm" href="{% url 'reports:errors_excel' e.uid %}" title="Failed papers, review flags, exclusions and corrections"><i class="bi bi-exclamation-triangle"></i> Processing</a>
+          </td>
+          <td class="nowrap">
+            <a class="btn btn-light btn-sm" href="{% url 'reports:cards_pdf' e.uid %}"><i class="bi bi-person-vcard"></i> Result cards</a>
+            <a class="btn btn-light btn-sm" href="{% url 'reports:summary_pdf' e.uid %}"><i class="bi bi-file-earmark-pdf"></i> Summary</a>
+          </td>
+          <td class="text-end"><a class="btn btn-light btn-sm" href="{% url 'answerkeys:export' e.answer_key_version.uid 'xlsx' %}" title="Answer key used for marking"><i class="bi bi-key"></i> Key</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}
+    <div class="empty"><div class="empty-ic"><i class="bi bi-file-earmark-text"></i></div><h3>No reports yet</h3><p>Reports become available once an examination has a verified answer key.</p></div>
+  {% endif %}
+</section>
+
+<div class="row g-4">
+  <div class="col-xl-7">
+    <section class="panel h-100">
+      <div class="panel-head"><div><h2 class="panel-title">Backups</h2><p class="panel-sub">Stored in the local data folder — never uploaded anywhere</p></div></div>
+      <div class="panel-body border-bottom">
+        <form method="post" class="d-flex flex-wrap gap-2 align-items-end" onsubmit="this.action=this.querySelector('select').value;">{% csrf_token %}
+          <div class="flex-grow-1" style="min-width:220px"><label class="form-label" for="backupExam">Back up an examination</label>
+            <select class="form-select" id="backupExam" required>
+              <option value="">Select an examination</option>
+              {% for e in all_exams %}<option value="{% url 'reports:backup_exam' e.uid %}">{{ e.name }} — {{ e.class_section }}</option>{% endfor %}
+            </select></div>
+          <button class="btn btn-primary" type="submit"><i class="bi bi-archive"></i> Create backup</button>
+        </form>
+        <div class="form-text mt-2">Includes every record, original paper, answer-key document and result for that examination.</div>
+      </div>
+      {% if backups %}
+        <div class="table-responsive" style="max-height:340px"><table class="table-x compact">
+          <thead><tr><th>Backup</th><th>Type</th><th>Size</th><th>Created</th><th></th></tr></thead>
+          <tbody>{% for b in backups %}
+            <tr><td class="small text-break">{{ b.name }}</td><td>{{ b.kind }}</td><td class="tabular small">{{ b.size|filesizeformat }}</td>
+              <td class="cell-sub nowrap">{{ b.created|date:"j M Y, H:i" }}</td>
+              <td class="text-end">{% if b.kind == "Examination" or user.is_superuser %}<a class="btn btn-light btn-sm" href="{% url 'reports:download_backup' b.name %}"><i class="bi bi-download"></i></a>{% endif %}</td></tr>
+          {% endfor %}</tbody>
+        </table></div>
+      {% else %}<div class="panel-body small text-muted">No backups yet.</div>{% endif %}
+    </section>
+  </div>
+  <div class="col-xl-5">
+    <section class="panel h-100">
+      <div class="panel-head"><div><h2 class="panel-title">Administration</h2><p class="panel-sub">Full backup and restore</p></div></div>
+      <div class="panel-body">
+        {% if user.is_superuser %}
+          <form method="post" action="{% url 'reports:backup_full' %}" class="mb-4">{% csrf_token %}
+            <button class="btn btn-light w-100 justify-content-center"><i class="bi bi-hdd-stack"></i> Create full backup</button>
+            <div class="form-text mt-2">Database and every data file, for moving to another computer or disaster recovery.</div>
+          </form>
+          <form method="post" action="{% url 'reports:restore' %}" enctype="multipart/form-data">{% csrf_token %}
+            <label class="form-label" for="archive">Restore an examination backup</label>
+            <input class="form-control mb-2" type="file" id="archive" name="archive" accept=".zip" required>
+            <button class="btn btn-primary w-100 justify-content-center" onclick="return confirm('Restore this examination backup? Existing examinations are never overwritten.');"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
+            <div class="form-text mt-2">Every file is checked against its fingerprint before anything is restored.</div>
+          </form>
+        {% else %}
+          <div class="small text-muted">Full backups and restores are available to administrators.</div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

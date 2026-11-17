@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "apps.papers",
     "apps.processing",
     "apps.results",
+    "apps.reports",
 ]
 
 MIDDLEWARE = [

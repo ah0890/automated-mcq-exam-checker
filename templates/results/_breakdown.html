@@ -3,8 +3,11 @@
   <div class="panel-head">
     <div><h2 class="panel-title">Result</h2>
       <p class="panel-sub">Marked against “{{ result.key_version.key.title }}” v{{ result.key_version.number }} · {{ result.evaluated_at|date:"j M Y, H:i" }}</p></div>
+    <div class="d-flex gap-2 align-items-center">
+    <a class="btn btn-light btn-sm" href="{% url 'reports:cards_pdf' result.exam.uid %}?paper={{ result.paper.uid }}" title="Printable result card"><i class="bi bi-printer"></i></a>
     {% if stale %}<span class="pill pill-warning">Out of date</span>
     {% elif result.passed %}<span class="pill pill-success">Pass</span>{% else %}<span class="pill pill-danger">Fail</span>{% endif %}
+    </div>
   </div>
   {% if stale %}
     <div class="px-4 pt-3"><div class="flash warning m-0"><i class="ic bi bi-exclamation-triangle-fill"></i><div class="small">This result no longer matches the paper or the examination ({{ stale|join:", " }}). It is kept until the examination is re-evaluated.</div></div></div>

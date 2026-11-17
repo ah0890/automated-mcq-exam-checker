@@ -14,6 +14,16 @@
   </div>
   <div class="d-flex gap-2 flex-wrap align-items-center">
     {% if exam.is_finalized %}<span class="pill pill-success"><i class="bi bi-lock-fill"></i> Finalized</span>{% else %}<span class="pill pill-warning">Provisional</span>{% endif %}
+    <div class="dropdown">
+      <button class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{% url 'reports:class_excel' exam.uid %}"><i class="bi bi-file-earmark-spreadsheet"></i> Class result sheet (Excel)</a></li>
+        <li><a class="dropdown-item" href="{% url 'reports:cards_pdf' exam.uid %}"><i class="bi bi-person-vcard"></i> Student result cards (PDF)</a></li>
+        <li><a class="dropdown-item" href="{% url 'reports:summary_pdf' exam.uid %}"><i class="bi bi-file-earmark-pdf"></i> Examination summary (PDF)</a></li>
+        <li><a class="dropdown-item" href="{% url 'reports:questions_excel' exam.uid %}"><i class="bi bi-bar-chart-line"></i> Question analysis (Excel)</a></li>
+        <li><a class="dropdown-item" href="{% url 'reports:errors_excel' exam.uid %}"><i class="bi bi-exclamation-triangle"></i> Processing report (Excel)</a></li>
+      </ul>
+    </div>
     <a class="btn btn-light" href="{% url 'results:questions' exam.uid %}"><i class="bi bi-bar-chart-line"></i> Question analysis</a>
     <a class="btn btn-light" href="{{ exam.get_absolute_url }}"><i class="bi bi-journal-text"></i> Examination</a>
   </div>

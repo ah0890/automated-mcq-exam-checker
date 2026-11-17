@@ -7,9 +7,10 @@ and performance analytics.
 All processing runs locally. No paid services or external AI APIs are used,
 and examination data never leaves the machine.
 
-> **Status:** Milestones 1–6 are complete: the full workflow from sheet
-> layout and answer key to verified, marked and finalized class results
-> with analytics. Excel/PDF reports and backups follow — see
+> **Status:** Milestones 1–7 are complete: the full workflow from sheet
+> layout and answer key to verified, marked and finalized class results,
+> with analytics, Excel/PDF reports and backups. Final testing and the
+> security review follow — see
 > [CHANGELOG.md](CHANGELOG.md) and [context.md](context.md).
 
 ## Features available now
@@ -35,6 +36,10 @@ and examination data never leaves the machine.
 - **Class results & analytics** — rank table with search, sorting and
   filters; distribution, pass/fail, student and question charts; question
   analysis; finalizing locks the examination.
+- **Reports** — Excel class result sheet, question analysis and processing
+  report; PDF student result cards and examination summary.
+- **Backups** — examination backup and restore (verified by SHA-256) and full
+  application backups.
 
 ## How it works
 
@@ -86,6 +91,14 @@ Reading accuracy on sample papers with manual ground truth
 .venv\Scripts\python manage.py recognition_report --distortions
 ```
 
+Backups (also available on the Reports page):
+
+```powershell
+.venv\Scripts\python manage.py backup_data --full
+.venv\Scripts\python manage.py backup_data --exam <examination-uuid>
+.venv\Scripts\python manage.py backup_data --restore data\backups\exam-....zip
+```
+
 ## Data storage
 
 Everything private — the database, uploaded papers, answer keys, results,
@@ -124,7 +137,8 @@ apps/answerkeys/ Answer Key Library and key extraction
 apps/students/   Class lists
 apps/papers/     Student paper upload, storage and viewer
 apps/processing/ Background processing, review and corrections
-apps/results/    Stored results, re-evaluation and ranking
+apps/results/    Stored results, re-evaluation, ranking and analytics
+apps/reports/    Excel/PDF reports, backups and restore
 omr/             Stand-alone OMR engine (no Django dependency)
 evaluation/      Stand-alone marking engine (no Django dependency)
 templates/       HTML templates

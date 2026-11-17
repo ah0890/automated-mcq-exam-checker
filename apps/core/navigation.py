@@ -23,7 +23,7 @@ NAV_SECTIONS = [
     ("Results", [
         ("Class Results", "results:index", "trophy", None),
         ("Question Analysis", "results:questions_index", "bar-chart-line", None),
-        ("Reports", None, "file-earmark-text", 7),
+        ("Reports", "reports:index", "file-earmark-text", None),
     ]),
     ("System", [
         ("Settings", "core:settings", "sliders", None),

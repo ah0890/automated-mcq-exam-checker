@@ -1,5 +1,26 @@
 # Changelog
 
+## Milestone 7 — Reports, exports and backups (2026-11-17)
+
+### Added
+
+- **Excel:** class result sheet (ranked results with student names,
+  summary, question analysis, every student's verified answers, examination
+  details), question-analysis workbook, and processing error report
+  (failed, unprocessed, flagged and excluded papers plus the correction
+  audit log).
+- **PDF:** one-page student result cards (whole class or a single student)
+  and an examination summary with statistics, distribution chart, class
+  result and question-wise analysis. All reports state the examination
+  details, generation time and whether results are FINAL or PROVISIONAL.
+- **Reports page** and export menus on Class Results, the examination
+  workspace and each paper.
+- **Backups:** examination backup ZIP (records + every original file with
+  SHA-256) and restore that verifies every file and never overwrites an
+  existing examination; full application backup for administrators;
+  `backup_data` management command.
+- 13 new tests (139 total).
+
 ## Milestone 6 — Class results, analytics and finalization (2026-11-17)
 
 ### Added
