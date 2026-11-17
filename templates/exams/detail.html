@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ exam.name }}{% endblock %}
+{% block crumbs %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{% url 'exams:list' %}">Examinations</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">{{ exam.name }}</span>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">{{ exam.subject }}{% if exam.exam_code %} · {{ exam.exam_code }}{% endif %}</div>
+    <h1 class="page-title">{{ exam.name }}</h1>
+    <p class="page-subtitle"><i class="bi bi-people me-1"></i>{{ exam.class_section }} <span class="mx-2 text-muted">·</span><i class="bi bi-calendar3 me-1"></i>{{ exam.exam_date|date:"l, j F Y" }}</p>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    {% stage_pill exam %}
+    {% if not exam.is_finalized %}<a class="btn btn-light" href="{% url 'exams:edit' exam.uid %}"><i class="bi bi-pencil"></i> Edit</a>{% endif %}
+  </div>
+</header>
+
+{% if exam.stage == "needs_key" %}
+  <div class="next-action mb-4">
+    <span class="na-ic"><i class="bi bi-key"></i></span>
+    <div class="flex-grow-1"><div class="na-title">Next: attach the verified answer key</div>
+      <div class="na-text">Papers can only be marked against a key you have verified.</div></div>
+    {% if has_compatible_keys %}<a class="btn btn-primary" href="#answer-key">Attach key</a>
+    {% else %}<a class="btn btn-primary" href="{% url 'answerkeys:upload' %}">Upload answer key</a>{% endif %}
+  </div>
+{% elif exam.stage == "ready_for_papers" %}
+  <div class="next-action done mb-4">
+    <span class="na-ic"><i class="bi bi-check-lg"></i></span>
+    <div class="flex-grow-1"><div class="na-title">Ready for student papers</div>
+      <div class="na-text">The answer key is attached. Uploading the class's answer sheets is added in the next release (Milestone 3).</div></div>
+  </div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3"><div class="panel stat"><div class="stat-label"><i class="bi bi-list-ol"></i> Questions</div><div class="stat-value">{{ exam.num_questions }}</div><div class="stat-foot">Options {{ exam.option_labels|make_list|join:", " }}</div></div></div>
+  <div class="col-6 col-lg-3"><div class="panel stat"><div class="stat-label"><i class="bi bi-award"></i> Maximum marks</div><div class="stat-value">{{ exam.max_marks|floatformat:"-2" }}</div><div class="stat-foot">{{ exam.marks_per_question|floatformat:"-2" }} per correct answer</div></div></div>
+  <div class="col-6 col-lg-3"><div class="panel stat"><div class="stat-label"><i class="bi bi-flag"></i> Pass mark</div><div class="stat-value">{{ exam.pass_marks|floatformat:"-2" }}</div><div class="stat-foot">{{ exam.passing_percentage|floatformat:"-2" }}% of maximum</div></div></div>
+  <div class="col-6 col-lg-3"><div class="panel stat"><div class="stat-label"><i class="bi bi-dash-circle"></i> Negative marking</div><div class="stat-value">{% if exam.negative_marking %}−{{ exam.negative_marks|floatformat:"-2" }}{% else %}None{% endif %}</div><div class="stat-foot">{% if exam.negative_marking %}per wrong answer{% else %}Wrong answers score zero{% endif %}</div></div></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-7">
+    <section class="panel mb-4" id="answer-key">
+      <div class="panel-head">
+        <div><h2 class="panel-title">Answer key</h2><p class="panel-sub">The verified key used to mark this examination</p></div>
+        {% if exam.answer_key_version %}<span class="pill pill-success">Attached</span>{% else %}<span class="pill pill-warning">Required</span>{% endif %}
+      </div>
+      <div class="panel-body">
+        {% if exam.answer_key_version %}
+          {% with v=exam.answer_key_version %}
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <span class="v-badge">v{{ v.number }}</span>
+            <div class="flex-grow-1 min-w-0">
+              <a class="fw-semibold text-decoration-none" href="{{ v.get_absolute_url }}">{{ v.key.title }}</a>
+              <div class="small text-muted">Verified {{ v.verified_at|date:"j M Y" }} · attached {{ exam.key_assigned_at|date:"j M Y, H:i" }}{% if exam.key_assigned_by %} by {{ exam.key_assigned_by.get_username }}{% endif %}</div>
+            </div>
+          </div>
+          <div class="key-table">
+            {% for q, a in v.ordered_answers %}<div class="key-cell"><span class="q">{{ q }}</span><span class="a">{{ a }}</span></div>{% endfor %}
+          </div>
+          {% endwith %}
+          {% if exam.newer_key_available %}
+            <div class="flash warning mt-3"><i class="ic bi bi-exclamation-triangle-fill"></i>
+              <div class="small">A newer verified version (v{{ exam.newer_key_available.number }}) of this key exists. This examination keeps using v{{ exam.answer_key_version.number }} until you switch below. Switching will require re-evaluating any marked papers.</div></div>
+          {% endif %}
+        {% endif %}
+
+        {% if not exam.is_finalized %}
+          {% if has_compatible_keys %}
+            <form method="post" action="{% url 'exams:assign_key' exam.uid %}" class="d-flex gap-2 flex-wrap align-items-end {% if exam.answer_key_version %}mt-4 pt-3 border-top{% endif %}">{% csrf_token %}
+              <div class="flex-grow-1" style="min-width:240px">
+                <label class="form-label" for="id_version">{% if exam.answer_key_version %}Use a different verified key{% else %}Verified answer key{% endif %}</label>
+                <select class="form-select" name="version" id="id_version" required>
+                  <option value="">Select a key with {{ exam.num_questions }} questions</option>
+                  {% for v in key_form.fields.version.queryset %}<option value="{{ v.pk }}"{% if v.pk == exam.answer_key_version_id %} disabled{% endif %}>{{ v.key.title }} · v{{ v.number }}{% if v.pk == exam.answer_key_version_id %} (current){% endif %}</option>{% endfor %}
+                </select>
+              </div>
+              <button class="btn btn-primary" type="submit"><i class="bi bi-link-45deg"></i> {% if exam.answer_key_version %}Switch key{% else %}Attach key{% endif %}</button>
+            </form>
+          {% elif not exam.answer_key_version %}
+            <div class="empty py-4">
+              <div class="empty-ic"><i class="bi bi-key"></i></div>
+              <h3>No matching verified key</h3>
+              <p>The library has no verified key with {{ exam.num_questions }} questions. Upload the official key and verify it.</p>
+              <a class="btn btn-primary" href="{% url 'answerkeys:upload' %}"><i class="bi bi-upload"></i> Upload answer key</a>
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <div class="col-xl-5">
+    <section class="panel mb-4">
+      <div class="panel-head"><div><h2 class="panel-title">Student papers</h2><p class="panel-sub">Upload, processing and results</p></div></div>
+      <div class="panel-body">
+        <div class="empty py-3">
+          <div class="empty-ic"><i class="bi bi-cloud-arrow-up"></i></div>
+          <h3>Paper upload arrives in Milestone 3</h3>
+          <p>You will upload the whole class's sheets here (PDF, JPG or PNG), then process them and review results on this page.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2 class="panel-title">Configuration</h2></div></div>
+      <div class="panel-body">
+        <dl class="kv">
+          <dt>Answer sheet</dt><dd><a href="{{ exam.sheet_layout.get_absolute_url }}">{{ exam.sheet_layout.name }}</a></dd>
+          <dt>Questions used</dt><dd>{{ exam.num_questions }} of {{ exam.sheet_layout.capacity }} on the sheet</dd>
+          <dt>Multiple marks</dt><dd>{{ exam.get_multiple_mark_policy_display }}</dd>
+          <dt>Unanswered</dt><dd>Score zero</dd>
+          <dt>Created</dt><dd>{{ exam.created_at|date:"j M Y, H:i" }}{% if exam.created_by %} by {{ exam.created_by.get_username }}{% endif %}</dd>
+        </dl>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

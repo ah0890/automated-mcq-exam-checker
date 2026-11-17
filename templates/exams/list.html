@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Examinations{% endblock %}
+{% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Examinations</span>{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Setup</div>
+    <h1 class="page-title">Examinations</h1>
+    <p class="page-subtitle">Each examination has its own answer key, marking rules, uploaded papers and results.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
+</header>
+
+<section class="panel">
+  {% if exams or query %}
+    <form class="toolbar" method="get">
+      <div class="input-icon"><i class="bi bi-search"></i>
+        <input class="form-control" type="search" name="q" value="{{ query }}" placeholder="Search by name, subject, class or exam ID"></div>
+      {% if query %}<a class="btn btn-light" href="{% url 'exams:list' %}">Clear</a>{% endif %}
+    </form>
+  {% endif %}
+  {% if exams %}
+    <div class="table-responsive">
+      <table class="table-x">
+        <thead><tr><th>Examination</th><th>Class</th><th>Date</th><th>Questions</th><th>Answer key</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for e in exams %}
+          <tr>
+            <td><a class="cell-title" href="{{ e.get_absolute_url }}">{{ e.name }}</a>
+                <div class="cell-sub">{{ e.subject }}{% if e.exam_code %} · {{ e.exam_code }}{% endif %}</div></td>
+            <td class="nowrap">{{ e.class_section }}</td>
+            <td class="tabular">{{ e.exam_date|date:"j M Y" }}</td>
+            <td class="tabular">{{ e.num_questions }}</td>
+            <td class="small">{% if e.answer_key_version %}{{ e.answer_key_version.key.title }} <span class="text-muted">v{{ e.answer_key_version.number }}</span>{% else %}<span class="text-muted">Not attached</span>{% endif %}</td>
+            <td>{% stage_pill e %}</td>
+            <td class="text-end"><a class="btn btn-light btn-sm" href="{{ e.get_absolute_url }}">Open</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% elif query %}
+    <div class="empty"><div class="empty-ic"><i class="bi bi-search"></i></div><h3>No examinations match “{{ query }}”</h3><p>Try a different search.</p></div>
+  {% else %}
+    <div class="empty">
+      <div class="empty-ic"><i class="bi bi-journal-plus"></i></div>
+      <h3>No examinations yet</h3>
+      <p>{% if has_layouts %}Create an examination to attach its answer key and upload the class's answer sheets.{% else %}Start by adding your answer-sheet layout from a blank sheet, then create the examination.{% endif %}</p>
+      {% if has_layouts %}<a class="btn btn-primary" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
+      {% else %}<a class="btn btn-primary" href="{% url 'exams:layout_create' %}"><i class="bi bi-grid-3x3-gap"></i> Add sheet layout</a>{% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

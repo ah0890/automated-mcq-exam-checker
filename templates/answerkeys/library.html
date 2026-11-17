@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Answer Key Library{% endblock %}
+{% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Answer Key Library</span>{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Setup</div>
+    <h1 class="page-title">Answer Key Library</h1>
+    <p class="page-subtitle">Official answer keys, verified by you and kept with full version history. Only verified keys can be used for marking.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-light" href="{% url 'answerkeys:manual' %}"><i class="bi bi-keyboard"></i> Enter manually</a>
+    <a class="btn btn-primary" href="{% url 'answerkeys:upload' %}"><i class="bi bi-upload"></i> Upload answer key</a>
+  </div>
+</header>
+
+<section class="panel">
+  {% if total %}
+    <form class="toolbar" method="get">
+      <div class="input-icon"><i class="bi bi-search"></i>
+        <input class="form-control" type="search" name="q" value="{{ query }}" placeholder="Search by title or subject"></div>
+      {% if query %}<a class="btn btn-light" href="{% url 'answerkeys:library' %}">Clear</a>{% endif %}
+    </form>
+  {% endif %}
+
+  {% if rows %}
+    <div class="table-responsive">
+      <table class="table-x">
+        <thead><tr><th>Answer key</th><th>Questions</th><th>Latest version</th><th>Status</th><th>Used by</th><th>Updated</th><th></th></tr></thead>
+        <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>
+              <a class="cell-title" href="{{ row.key.get_absolute_url }}">{{ row.key.title }}</a>
+              <div class="cell-sub">{{ row.key.subject|default:"—" }}</div>
+            </td>
+            <td class="tabular">{{ row.latest.num_questions }} <span class="text-muted">· {{ row.latest.option_labels|make_list|join:"" }}</span></td>
+            <td class="tabular">v{{ row.latest.number }} <span class="text-muted">of {{ row.key.version_count }}</span></td>
+            <td>
+              {% if row.draft %}<span class="pill pill-warning">Awaiting verification</span>
+              {% else %}<span class="pill pill-success">Verified</span>{% endif %}
+            </td>
+            <td class="tabular">{{ row.key.exam_count }} exam{{ row.key.exam_count|pluralize }}</td>
+            <td class="cell-sub">{{ row.key.updated_at|date:"j M Y" }}</td>
+            <td class="text-end">
+              {% if row.draft %}
+                <a class="btn btn-primary btn-sm" href="{% url 'answerkeys:verify' row.draft.uid %}">Verify</a>
+              {% else %}
+                <a class="btn btn-light btn-sm" href="{{ row.key.get_absolute_url }}">Open</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% elif query %}
+    <div class="empty"><div class="empty-ic"><i class="bi bi-search"></i></div><h3>No keys match “{{ query }}”</h3><p>Try a different title or subject.</p></div>
+  {% else %}
+    <div class="empty">
+      <div class="empty-ic"><i class="bi bi-key"></i></div>
+      <h3>Your library is empty</h3>
+      <p>Upload the official answer key as a PDF, Excel, Word, CSV, JSON or a scanned image. You will check every extracted answer before it is saved.</p>
+      <a class="btn btn-primary" href="{% url 'answerkeys:upload' %}"><i class="bi bi-upload"></i> Upload answer key</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

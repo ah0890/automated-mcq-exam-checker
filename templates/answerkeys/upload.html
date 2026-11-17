@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == "manual" %}Enter answer key{% else %}Upload answer key{% endif %}{% endblock %}
+{% block crumbs %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{% url 'answerkeys:library' %}">Answer Key Library</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">{% if mode == "manual" %}Enter manually{% else %}Upload{% endif %}</span>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Answer Key Library</div>
+    <h1 class="page-title">{% if mode == "manual" %}Enter an answer key{% else %}Upload an answer key{% endif %}</h1>
+    <p class="page-subtitle">{% if mode == "manual" %}Type the correct option for each question on the next screen.{% else %}The document is read automatically. On the next screen you compare every answer with the original before saving.{% endif %}</p>
+  </div>
+</header>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <form class="panel" method="post" enctype="multipart/form-data" novalidate
+          {% if mode != "manual" %}data-loading="Reading the answer key…" data-loading-sub="Scanned images can take up to a minute."{% endif %}>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="p-3 pb-0">{% for e in form.non_field_errors %}<div class="flash error"><i class="ic bi bi-x-octagon-fill"></i><div>{{ e }}</div></div>{% endfor %}</div>{% endif %}
+      <div class="form-section">
+        <div class="form-section-title">Key details</div>
+        <div class="form-section-sub">How this key will appear in the library.</div>
+        <div class="row">
+          <div class="col-md-7">{% include "components/field.html" with field=form.title %}</div>
+          <div class="col-md-5">{% include "components/field.html" with field=form.subject %}</div>
+          <div class="col-md-6">{% include "components/field.html" with field=form.option_labels %}</div>
+          <div class="col-md-6">{% include "components/field.html" with field=form.num_questions %}</div>
+        </div>
+      </div>
+      {% if mode != "manual" %}
+      <div class="form-section">
+        <div class="form-section-title">Document</div>
+        <div class="form-section-sub">PDF, Excel (.xlsx), Word (.docx), CSV, JSON, or a scanned image (JPG/PNG).</div>
+        <label class="dropzone{% if form.document.errors %} is-invalid{% endif %}">
+          <input type="file" name="document" accept=".pdf,.xlsx,.docx,.csv,.json,.jpg,.jpeg,.png" required>
+          <div class="dz-ic"><i class="bi bi-file-earmark-arrow-up"></i></div>
+          <div class="dz-title">Drop the answer key here, or click to browse</div>
+          <div class="dz-sub">Up to {{ settings_max_mb|default:"50" }} MB</div>
+          <div class="dz-file"></div>
+        </label>
+        {% for e in form.document.errors %}<div class="invalid-feedback d-block mt-2">{{ e }}</div>{% endfor %}
+      </div>
+      {% endif %}
+      <div class="form-section d-flex justify-content-end gap-2">
+        <a class="btn btn-light" href="{% url 'answerkeys:library' %}">Cancel</a>
+        <button class="btn btn-primary" type="submit">{% if mode == "manual" %}Continue{% else %}Read document{% endif %} <i class="bi bi-arrow-right"></i></button>
+      </div>
+    </form>
+  </div>
+  <div class="col-xl-4">
+    <section class="panel">
+      <div class="panel-head"><h2 class="panel-title">What happens next</h2></div>
+      <div class="panel-body">
+        <ul class="checklist">
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">Answers are extracted</div><div class="check-desc">Question numbers are paired with the answer next to them, including multi-column tables.</div></div></li>
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">You check every answer</div><div class="check-desc">The original document is shown beside the answers. Missing or doubtful answers are highlighted.</div></div></li>
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">You verify and save</div><div class="check-desc">Only verified keys can be attached to an examination. Later edits create a new version.</div></div></li>
+        </ul>
+        {% if mode != "manual" %}
+        <div class="flash info mt-4"><i class="ic bi bi-lightbulb"></i><div class="small">For scanned keys, scan at <strong>300 dpi</strong> and keep the page straight. Digital PDFs and Excel files are read exactly.</div></div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Students</span>{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Setup</div>
+    <h1 class="page-title">Students</h1>
+    <p class="page-subtitle">Class lists link roll numbers read from answer sheets to student names on results.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-light" href="{% url 'students:create' %}{% if klass %}?class={{ klass|urlencode }}{% endif %}"><i class="bi bi-person-plus"></i> Add student</a>
+    <a class="btn btn-primary" href="{% url 'students:import' %}"><i class="bi bi-file-earmark-spreadsheet"></i> Import class list</a>
+  </div>
+</header>
+<section class="panel">
+  {% if total %}
+    <form class="toolbar" method="get">
+      <div class="input-icon"><i class="bi bi-search"></i><input class="form-control" type="search" name="q" value="{{ query }}" placeholder="Search by roll number or name"></div>
+      <select class="form-select" name="class" style="max-width:240px" onchange="this.form.submit()">
+        <option value="">All classes</option>
+        {% for c in classes %}<option value="{{ c.class_section }}"{% if c.class_section == klass %} selected{% endif %}>{{ c.class_section }} ({{ c.n }})</option>{% endfor %}
+      </select>
+      {% if query or klass %}<a class="btn btn-light" href="{% url 'students:list' %}">Clear</a>{% endif %}
+    </form>
+  {% endif %}
+  {% if students %}
+    <div class="table-responsive"><table class="table-x">
+      <thead><tr><th>Roll no.</th><th>Name</th><th>Class / section</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for s in students %}
+        <tr>
+          <td class="tabular fw-semibold">{{ s.roll_number }}</td>
+          <td>{{ s.name }}</td>
+          <td>{{ s.class_section }}</td>
+          <td>{% if s.is_active %}<span class="pill pill-success">Active</span>{% else %}<span class="pill pill-neutral">Inactive</span>{% endif %}</td>
+          <td class="text-end"><a class="btn btn-light btn-sm" href="{% url 'students:edit' s.uid %}">Edit</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% elif total %}
+    <div class="empty"><div class="empty-ic"><i class="bi bi-search"></i></div><h3>No students match</h3><p>Try a different search or class.</p></div>
+  {% else %}
+    <div class="empty">
+      <div class="empty-ic"><i class="bi bi-people"></i></div>
+      <h3>No students yet</h3>
+      <p>Import your class list from Excel or CSV with roll number and name columns. Results still work without it — they show roll numbers until names are added.</p>
+      <a class="btn btn-primary" href="{% url 'students:import' %}"><i class="bi bi-file-earmark-spreadsheet"></i> Import class list</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

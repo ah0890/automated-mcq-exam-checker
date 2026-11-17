@@ -7,9 +7,20 @@ and performance analytics.
 All processing runs locally. No paid services or external AI APIs are used,
 and examination data never leaves the machine.
 
-> **Status:** Milestone 1 (foundation and OMR engine) is complete. The full
-> teacher workflow is being built milestone by milestone — see
+> **Status:** Milestones 1–2 are complete: OMR engine, sheet layouts,
+> examinations, the Answer Key Library and class lists. Paper upload,
+> processing and results follow milestone by milestone — see
 > [CHANGELOG.md](CHANGELOG.md) and [context.md](context.md).
+
+## Features available now
+
+- **Sheet layouts** — calibrate an answer-sheet design from one blank sheet.
+- **Examinations** — marking rules, question count, pass percentage,
+  negative marking and multiple-mark policy.
+- **Answer Key Library** — upload PDF, Excel, Word, CSV, JSON or scanned
+  keys; verify every answer beside the original; versioned, immutable once
+  verified; export to Excel or JSON.
+- **Students** — class lists imported from Excel or CSV.
 
 ## How it works
 
@@ -67,13 +78,19 @@ excluded from version control. Sample papers used for validation live in
   `samples/ground_truth/`, including rotated, cropped, low-resolution, noisy,
   shadowed, perspective-distorted and JPEG-compressed variants. Skipped when
   the private samples are not present.
-- `apps/core/tests/` — authentication and page rendering.
+- `apps/answerkeys/tests/` — key extraction for every format, and the real
+  sample key compared with its manually verified answers.
+- `apps/exams/tests/` — the full setup workflow through the web interface.
+- `apps/core/tests/` — authentication, page rendering and upload safety.
 
 ## Project layout
 
 ```text
 config/          Django settings and URLs
-apps/core/       Dashboard, navigation, settings, system checks
+apps/core/       Dashboard, settings, file storage, previews
+apps/exams/      Sheet layouts and examinations
+apps/answerkeys/ Answer Key Library and key extraction
+apps/students/   Class lists
 omr/             Stand-alone OMR engine (no Django dependency)
 templates/       HTML templates
 static/          CSS and vendored Bootstrap 5, Bootstrap Icons, Chart.js

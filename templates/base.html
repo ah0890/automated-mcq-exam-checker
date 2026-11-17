@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components.css' %}">
   {% block head %}{% endblock %}
 </head>
 <body>
@@ -101,8 +102,35 @@
   </div>
 </div>
 <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+<div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite">
+  <div class="spinner-border text-primary" aria-hidden="true"></div>
+  <div class="msg" id="loadingMsg">Working…</div>
+  <div class="sub" id="loadingSub"></div>
+</div>
 <script>
   document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) { new bootstrap.Tooltip(el); });
+  // Forms with data-loading show a full-screen progress message while the server works.
+  document.querySelectorAll('form[data-loading]').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      var btn = e.submitter;
+      if (btn && btn.hasAttribute('formnovalidate')) return;
+      document.getElementById('loadingMsg').textContent = form.dataset.loading;
+      document.getElementById('loadingSub').textContent = form.dataset.loadingSub || '';
+      document.getElementById('loadingOverlay').classList.add('show');
+    });
+  });
+  // Drop zones: show the chosen file name(s).
+  document.querySelectorAll('.dropzone').forEach(function (dz) {
+    var input = dz.querySelector('input[type=file]'), out = dz.querySelector('.dz-file');
+    if (!input) return;
+    ['dragenter', 'dragover'].forEach(function (ev) { dz.addEventListener(ev, function () { dz.classList.add('is-over'); }); });
+    ['dragleave', 'drop'].forEach(function (ev) { dz.addEventListener(ev, function () { dz.classList.remove('is-over'); }); });
+    input.addEventListener('change', function () {
+      if (!out) return;
+      var n = input.files.length;
+      out.textContent = n === 0 ? '' : (n === 1 ? input.files[0].name : n + ' files selected');
+    });
+  });
 </script>
 {% block scripts %}{% endblock %}
 </body>

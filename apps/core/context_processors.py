@@ -19,9 +19,13 @@ def navigation(request):
         items = []
         for label, url_name, icon, milestone in entries:
             url = _resolve(url_name)
-            active = bool(url) and (current == url if url == "/" else current.startswith(url))
-            items.append({"label": label, "url": url, "icon": icon, "milestone": milestone, "active": active})
+            items.append({"label": label, "url": url, "icon": icon, "milestone": milestone, "active": False})
         sections.append({"title": title, "items": items})
+    # Highlight only the most specific matching entry.
+    matches = [i for s in sections for i in s["items"]
+               if i["url"] and (current == i["url"] if i["url"] == "/" else current.startswith(i["url"]))]
+    if matches:
+        max(matches, key=lambda i: len(i["url"]))["active"] = True
 
     user = getattr(request, "user", None)
     initials = ""

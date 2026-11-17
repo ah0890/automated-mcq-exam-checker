@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Dashboard{% endblock %}
 {% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Dashboard</span>{% endblock %}
 {% block content %}
@@ -11,48 +12,55 @@
       <p class="hero-text">Every result here comes from the answer sheets you upload and an answer key you have verified. Nothing is marked until you approve it.</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-      <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" data-bs-title="Available from Milestone 2">
-        <button class="btn btn-hero btn-lg" type="button" disabled><i class="bi bi-plus-lg"></i> New examination</button>
-      </span>
-      <a class="btn btn-ghost btn-lg" href="{% url 'core:settings' %}"><i class="bi bi-sliders"></i> Settings</a>
+      <a class="btn btn-hero btn-lg" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
+      <a class="btn btn-ghost btn-lg" href="{% url 'answerkeys:upload' %}"><i class="bi bi-key"></i> Upload answer key</a>
     </div>
   </div>
 </section>
 
-<section class="panel mb-4">
-  <div class="panel-head">
-    <div>
-      <h2 class="panel-title">Examination workflow</h2>
-      <p class="panel-sub">From answer key to class results in eight steps</p>
-    </div>
-    <span class="pill pill-neutral">No examinations yet</span>
-  </div>
-  <div class="panel-body py-4">
-    <ol class="stepper list-unstyled m-0">
-      {% for label, icon in workflow %}
-        <li class="step{% if forloop.first %} is-current{% endif %}">
-          <span class="step-dot"><i class="bi bi-{{ icon }}"></i></span>
-          <span class="step-text">
-            <span class="step-label d-block">{{ label }}</span>
-            <span class="step-meta d-block">{% if forloop.first %}Start here{% else %}Step {{ forloop.counter }}{% endif %}</span>
-          </span>
-        </li>
-      {% endfor %}
-    </ol>
-  </div>
-</section>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><a class="panel stat d-block text-decoration-none text-reset" href="{% url 'exams:list' %}"><div class="stat-label"><i class="bi bi-journal-text"></i> Examinations</div><div class="stat-value">{{ counts.exams }}</div><div class="stat-foot">{{ counts.ready }} ready for papers</div></a></div>
+  <div class="col-6 col-xl-3"><a class="panel stat d-block text-decoration-none text-reset" href="{% url 'answerkeys:library' %}"><div class="stat-label"><i class="bi bi-key"></i> Verified answer keys</div><div class="stat-value">{{ counts.verified_keys }}</div><div class="stat-foot">{% if counts.draft_keys %}{{ counts.draft_keys }} awaiting verification{% else %}None awaiting verification{% endif %}</div></a></div>
+  <div class="col-6 col-xl-3"><a class="panel stat d-block text-decoration-none text-reset" href="{% url 'students:list' %}"><div class="stat-label"><i class="bi bi-people"></i> Students</div><div class="stat-value">{{ counts.students }}</div><div class="stat-foot">Active in class lists</div></a></div>
+  <div class="col-6 col-xl-3"><a class="panel stat d-block text-decoration-none text-reset" href="{% url 'exams:layouts' %}"><div class="stat-label"><i class="bi bi-grid-3x3-gap"></i> Sheet layouts</div><div class="stat-value">{{ counts.layouts }}</div><div class="stat-foot">Calibrated answer sheets</div></a></div>
+</div>
 
-<div class="row g-4">
+<div class="row g-4 mb-4">
   <div class="col-xl-7">
     <section class="panel h-100">
       <div class="panel-head">
-        <div>
-          <h2 class="panel-title">Getting started</h2>
-          <p class="panel-sub">{{ setup_done }} of {{ setup|length }} complete</p>
+        <div><h2 class="panel-title">Upload student papers</h2><p class="panel-sub">Examinations with a verified answer key, ready for the class's answer sheets</p></div>
+        <span class="pill pill-neutral pill-plain">Upload: Milestone 3</span>
+      </div>
+      {% if ready_exams %}
+        <ul class="versions">
+          {% for e in ready_exams %}
+            <li><a href="{{ e.get_absolute_url }}">
+              <span class="v-badge"><i class="bi bi-cloud-arrow-up"></i></span>
+              <span class="flex-grow-1 min-w-0">
+                <span class="d-block fw-semibold small text-truncate">{{ e.name }}</span>
+                <span class="d-block small text-muted">{{ e.class_section }} · {{ e.exam_date|date:"j M Y" }} · {{ e.num_questions }} questions</span>
+              </span>
+              <span class="btn btn-light btn-sm">Open</span>
+            </a></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="empty py-4">
+          <div class="empty-ic"><i class="bi bi-cloud-arrow-up"></i></div>
+          <h3>No examination is ready for papers yet</h3>
+          <p>Create an examination and attach a verified answer key. It will then appear here for uploading the class's answer sheets.</p>
+          <a class="btn btn-primary" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
         </div>
-        <div class="progress" style="width:140px;height:6px" role="progressbar" aria-label="Setup progress"
-             aria-valuenow="{{ setup_done }}" aria-valuemin="0" aria-valuemax="{{ setup|length }}">
-          <div class="progress-bar" style="width:{% widthratio setup_done setup|length 100 %}%"></div>
+      {% endif %}
+    </section>
+  </div>
+  <div class="col-xl-5">
+    <section class="panel h-100">
+      <div class="panel-head">
+        <div><h2 class="panel-title">Getting started</h2><p class="panel-sub">{{ setup_done }} of {{ setup_total }} complete</p></div>
+        <div class="progress" style="width:120px;height:6px" role="progressbar" aria-label="Setup progress" aria-valuenow="{{ setup_done }}" aria-valuemin="0" aria-valuemax="{{ setup_total }}">
+          <div class="progress-bar" style="width:{% widthratio setup_done setup_total 100 %}%"></div>
         </div>
       </div>
       <div class="panel-body">
@@ -61,51 +69,63 @@
             <li class="{{ item.state }}">
               <span class="check-ic"><i class="bi {% if item.state == 'fail' %}bi-exclamation-lg{% else %}bi-check-lg{% endif %}"></i></span>
               <div class="flex-grow-1">
-                <div class="check-title">{{ item.title }}</div>
+                <div class="check-title">{% if item.url and item.state != "done" %}<a class="text-reset" href="{% url item.url %}">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</div>
                 <div class="check-desc">{{ item.desc }}</div>
               </div>
-              {% if item.milestone %}<span class="pill pill-neutral pill-plain">Milestone {{ item.milestone }}</span>{% endif %}
+              {% if item.url and item.state != "done" %}<a class="btn btn-light btn-sm" href="{% url item.url %}">Start</a>{% endif %}
             </li>
           {% endfor %}
         </ul>
       </div>
     </section>
   </div>
-  <div class="col-xl-5">{% include "core/_system_status.html" %}</div>
 </div>
 
-<div class="row g-4 mt-0">
-  <div class="col-xl-7">
-    <section class="panel h-100">
-      <div class="panel-head">
-        <div>
-          <h2 class="panel-title">How answer sheets are read</h2>
-          <p class="panel-sub">Recognition runs on this computer</p>
-        </div>
-      </div>
-      <div class="panel-body">
-        <div class="row g-4">
-          <div class="col-md-6"><div class="feature"><span class="feature-ic"><i class="bi bi-bounding-box-circles"></i></span><div><div class="feature-title">Automatic alignment</div><p class="feature-text">Corner markers straighten tilted, rotated or phone-photographed pages.</p></div></div></div>
-          <div class="col-md-6"><div class="feature"><span class="feature-ic"><i class="bi bi-circle-half"></i></span><div><div class="feature-title">Bubble-by-bubble reading</div><p class="feature-text">Each bubble is compared with the blank sheet, so printed letters never count as marks.</p></div></div></div>
-          <div class="col-md-6"><div class="feature"><span class="feature-ic"><i class="bi bi-123"></i></span><div><div class="feature-title">Roll numbers from bubbles</div><p class="feature-text">Roll numbers are read from the filled digit grid, not handwriting.</p></div></div></div>
-          <div class="col-md-6"><div class="feature"><span class="feature-ic"><i class="bi bi-person-check"></i></span><div><div class="feature-title">You decide unclear marks</div><p class="feature-text">Faint, erased or double marks are flagged for review — never guessed.</p></div></div></div>
-        </div>
-      </div>
-    </section>
+<section class="panel mb-4">
+  <div class="panel-head">
+    <div><h2 class="panel-title">Recent examinations</h2><p class="panel-sub">Latest by examination date</p></div>
+    <a class="btn btn-light btn-sm" href="{% url 'exams:list' %}">View all</a>
   </div>
+  {% if recent_exams %}
+    <div class="table-responsive"><table class="table-x">
+      <thead><tr><th>Examination</th><th>Class</th><th>Date</th><th>Answer key</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for e in recent_exams %}
+        <tr>
+          <td><a class="cell-title" href="{{ e.get_absolute_url }}">{{ e.name }}</a><div class="cell-sub">{{ e.subject }}</div></td>
+          <td class="nowrap">{{ e.class_section }}</td>
+          <td class="tabular">{{ e.exam_date|date:"j M Y" }}</td>
+          <td class="small">{% if e.answer_key_version %}{{ e.answer_key_version.key.title }} <span class="text-muted">v{{ e.answer_key_version.number }}</span>{% else %}<span class="text-muted">Not attached</span>{% endif %}</td>
+          <td>{% stage_pill e %}</td>
+          <td class="text-end"><a class="btn btn-light btn-sm" href="{{ e.get_absolute_url }}">Open</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}
+    <div class="panel-body">
+      <ol class="stepper list-unstyled m-0">
+        {% for label, icon in workflow %}
+          <li class="step{% if forloop.first %} is-current{% endif %}">
+            <span class="step-dot"><i class="bi bi-{{ icon }}"></i></span>
+            <span class="step-text"><span class="step-label d-block">{{ label }}</span><span class="step-meta d-block">{% if forloop.first %}Start here{% else %}Step {{ forloop.counter }}{% endif %}</span></span>
+          </li>
+        {% endfor %}
+      </ol>
+    </div>
+  {% endif %}
+</section>
+
+<div class="row g-4">
+  <div class="col-xl-7">{% include "core/_system_status.html" %}</div>
   <div class="col-xl-5">
     <section class="panel h-100">
-      <div class="panel-head">
-        <div>
-          <h2 class="panel-title">Data &amp; privacy</h2>
-          <p class="panel-sub">Where your examination records live</p>
-        </div>
-        <span class="pill pill-success">Local only</span>
-      </div>
+      <div class="panel-head"><div><h2 class="panel-title">Data &amp; privacy</h2><p class="panel-sub">Where your examination records live</p></div><span class="pill pill-success">Local only</span></div>
       <div class="panel-body">
         <dl class="kv">
           <dt>Storage</dt><dd class="mono">{{ data_dir }}</dd>
           <dt>Cloud services</dt><dd>None</dd>
+          <dt>Originals</dt><dd>Kept read-only, fingerprinted with SHA-256</dd>
           <dt>Version control</dt><dd>Papers, keys and results are excluded</dd>
         </dl>
       </div>

@@ -2,6 +2,10 @@ from django.conf import settings
 from django.shortcuts import render
 from django.utils import timezone
 
+from apps.answerkeys.models import AnswerKey, AnswerKeyVersion
+from apps.exams.models import Examination, SheetLayout
+from apps.students.models import Student
+
 from .system_checks import run_system_checks
 
 WORKFLOW = [
@@ -17,10 +21,9 @@ WORKFLOW = [
 
 
 def _greeting(now):
-    hour = now.hour
-    if hour < 12:
+    if now.hour < 12:
         return "Good morning"
-    if hour < 17:
+    if now.hour < 17:
         return "Good afternoon"
     return "Good evening"
 
@@ -29,33 +32,49 @@ def dashboard(request):
     checks = run_system_checks()
     healthy = all(c.ok for c in checks)
     now = timezone.localtime()
-    name = request.user.first_name or request.user.get_username()
 
-    # Every item reflects real application state; nothing is pre-filled.
+    exams = Examination.objects.select_related("answer_key_version__key", "sheet_layout")
+    counts = {
+        "exams": exams.count(),
+        "layouts": SheetLayout.objects.count(),
+        "verified_keys": AnswerKeyVersion.objects.filter(status=AnswerKeyVersion.Status.VERIFIED)
+                                                .values("key").distinct().count(),
+        "draft_keys": AnswerKey.objects.filter(versions__status=AnswerKeyVersion.Status.DRAFT).distinct().count(),
+        "students": Student.objects.filter(is_active=True).count(),
+        "ready": exams.filter(answer_key_version__isnull=False, status=Examination.Status.ACTIVE).count(),
+    }
+
+    # Every item reflects real application state.
     setup = [
-        {"title": "Administrator account created", "desc": "You are signed in and can manage the application.",
-         "state": "done"},
-        {"title": "System components ready",
+        {"title": "System components ready", "state": "done" if healthy else "fail",
          "desc": "OCR, image processing and storage are available." if healthy
-         else "Some components need attention — see System health.",
-         "state": "done" if healthy else "fail"},
-        {"title": "Create your first examination", "desc": "Name, class, question count and marking rules.",
-         "state": "todo", "milestone": 2},
-        {"title": "Upload and verify the answer key", "desc": "Extracted answers are checked by you before use.",
-         "state": "todo", "milestone": 2},
-        {"title": "Upload the class's answer sheets", "desc": "PDF, JPG or PNG — a whole class at once.",
-         "state": "todo", "milestone": 3},
+         else "Some components need attention — see System health."},
+        {"title": "Add your answer-sheet layout", "state": "done" if counts["layouts"] else "todo",
+         "desc": "Upload a blank sheet once so bubbles can be located.", "url": "exams:layout_create"},
+        {"title": "Verify an answer key", "state": "done" if counts["verified_keys"] else "todo",
+         "desc": "Upload the official key and check every answer.", "url": "answerkeys:upload"},
+        {"title": "Create an examination", "state": "done" if counts["exams"] else "todo",
+         "desc": "Name, class, question count and marking rules.", "url": "exams:create"},
+        {"title": "Attach the key to the examination", "state": "done" if counts["ready"] else "todo",
+         "desc": "The examination is then ready for student papers."},
+        {"title": "Import the class list", "state": "done" if counts["students"] else "optional",
+         "desc": "Optional — shows student names next to roll numbers.", "url": "students:import"},
     ]
+    required = [s for s in setup if s["state"] != "optional"]
 
     return render(request, "core/dashboard.html", {
         "checks": checks,
         "healthy": healthy,
         "greeting": _greeting(now),
-        "display_name": name,
+        "display_name": request.user.first_name or request.user.get_username(),
         "today": now,
         "workflow": WORKFLOW,
         "setup": setup,
-        "setup_done": sum(1 for s in setup if s["state"] == "done"),
+        "setup_done": sum(1 for s in required if s["state"] == "done"),
+        "setup_total": len(required),
+        "counts": counts,
+        "recent_exams": exams[:6],
+        "ready_exams": exams.filter(answer_key_version__isnull=False, status=Examination.Status.ACTIVE)[:5],
         "data_dir": settings.DATA_DIR,
     })
 

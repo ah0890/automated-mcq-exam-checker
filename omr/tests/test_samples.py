@@ -78,7 +78,9 @@ class SamplePapers(unittest.TestCase):
         for truth_file in sorted(TRUTH_DIR.glob("*.json")):
             pdf = SAMPLES / f"{truth_file.stem}.pdf"
             if pdf.exists():
-                cls.papers.append((pdf, json.loads(truth_file.read_text(encoding="utf-8"))))
+                truth = json.loads(truth_file.read_text(encoding="utf-8"))
+                if "roll_number" in truth:  # student-paper ground truth only
+                    cls.papers.append((pdf, truth))
 
     def test_template_matches_sheet_design(self):
         self.assertEqual(self.template.capacity, 50)

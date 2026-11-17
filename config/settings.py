@@ -58,6 +58,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.humanize",
     "apps.core",
+    "apps.students",
+    "apps.answerkeys",
+    "apps.exams",
 ]
 
 MIDDLEWARE = [

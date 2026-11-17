@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ layout.name }}{% endblock %}
+{% block crumbs %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{% url 'exams:layouts' %}">Sheet Layouts</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">{{ layout.name }}</span>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Sheet layout{% if layout.code %} · {{ layout.code }}{% endif %}</div>
+    <h1 class="page-title">{{ layout.name }}</h1>
+    <p class="page-subtitle">Calibrated from “{{ layout.blank_name }}” on {{ layout.created_at|date:"j M Y" }}.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
+</header>
+<div class="row g-4">
+  <div class="col-xl-8">
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2 class="panel-title">Detected layout</h2><p class="panel-sub">Check that every bubble is outlined. Question numbers show the reading order.</p></div>
+        <div class="legend"><span style="color:#2563eb"><i class="bi bi-circle"></i> Answer bubbles</span>{% if layout.roll_digits %}<span style="color:#f79009"><i class="bi bi-circle"></i> Roll number</span>{% endif %}<span style="color:#12b76a"><i class="bi bi-square"></i> Markers</span></div>
+      </div>
+      <div class="panel-body"><div class="preview-frame"><img src="{% url 'exams:layout_preview' layout.uid %}" alt="Detected bubbles on the blank sheet"></div></div>
+    </section>
+  </div>
+  <div class="col-xl-4">
+    <section class="panel mb-4">
+      <div class="panel-head"><h2 class="panel-title">Summary</h2><span class="pill pill-success">Calibrated</span></div>
+      <div class="panel-body">
+        <dl class="kv">
+          <dt>Questions</dt><dd>{{ layout.capacity }}</dd>
+          <dt>Options</dt><dd>{{ layout.option_labels|make_list|join:", " }}</dd>
+          <dt>Roll number</dt><dd>{% if layout.roll_digits %}{{ layout.roll_digits }}-digit bubble grid{% else %}None{% endif %}</dd>
+          <dt>Numbering</dt><dd>{{ layout.get_question_order_display }}</dd>
+          <dt>Fingerprint</dt><dd class="mono small">{{ layout.blank_sha256|slice:":16" }}…</dd>
+        </dl>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2 class="panel-title">Examinations using it</h2></div>
+      {% if exams %}
+        <ul class="versions">{% for e in exams %}<li><a href="{{ e.get_absolute_url }}"><span class="v-badge"><i class="bi bi-journal-text"></i></span><span class="min-w-0"><span class="d-block fw-semibold small text-truncate">{{ e.name }}</span><span class="d-block small text-muted">{{ e.class_section }}</span></span></a></li>{% endfor %}</ul>
+      {% else %}<div class="panel-body small text-muted">None yet.</div>{% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

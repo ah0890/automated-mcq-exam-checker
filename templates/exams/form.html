@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{% if exam %}Edit {{ exam.name }}{% else %}New examination{% endif %}{% endblock %}
+{% block crumbs %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{% url 'exams:list' %}">Examinations</a>
+{% if exam %}<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{{ exam.get_absolute_url }}">{{ exam.name }}</a>{% endif %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">{% if exam %}Edit{% else %}New{% endif %}</span>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Examinations</div>
+    <h1 class="page-title">{% if exam %}Edit examination{% else %}Create an examination{% endif %}</h1>
+    <p class="page-subtitle">Set the details and marking rules. You attach the answer key and upload papers on the next screen.</p>
+  </div>
+</header>
+
+<form method="post" novalidate class="row g-4">{% csrf_token %}
+  <div class="col-xl-8">
+    <section class="panel">
+      {% if form.non_field_errors %}<div class="p-3 pb-0">{% for e in form.non_field_errors %}<div class="flash error"><i class="ic bi bi-x-octagon-fill"></i><div>{{ e }}</div></div>{% endfor %}</div>{% endif %}
+      <div class="form-section">
+        <div class="form-section-title">Examination details</div>
+        <div class="form-section-sub">Shown on results, reports and student result cards.</div>
+        <div class="row">
+          <div class="col-md-7">{% include "components/field.html" with field=form.name %}</div>
+          <div class="col-md-5">{% include "components/field.html" with field=form.subject %}</div>
+          <div class="col-md-5">{% include "components/field.html" with field=form.class_section %}</div>
+          <div class="col-md-4">{% include "components/field.html" with field=form.exam_date %}</div>
+          <div class="col-md-3">{% include "components/field.html" with field=form.exam_code %}</div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">Answer sheet</div>
+        <div class="form-section-sub">The sheet design students fill in, and how many of its questions this examination uses.</div>
+        <div class="row">
+          <div class="col-md-8">{% include "components/field.html" with field=form.sheet_layout %}</div>
+          <div class="col-md-4">{% include "components/field.html" with field=form.num_questions %}</div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">Marking rules</div>
+        <div class="form-section-sub">Applied by the evaluation engine. Calculations use exact decimal arithmetic.</div>
+        <div class="row">
+          <div class="col-md-4">{% include "components/field.html" with field=form.marks_per_question %}</div>
+          <div class="col-md-4">{% include "components/field.html" with field=form.passing_percentage %}</div>
+          <div class="col-md-4">{% include "components/field.html" with field=form.multiple_mark_policy %}</div>
+          <div class="col-md-6">{% include "components/field.html" with field=form.negative_marking %}</div>
+          <div class="col-md-6" id="negMarksWrap">{% include "components/field.html" with field=form.negative_marks %}</div>
+        </div>
+        <div class="small text-muted"><i class="bi bi-info-circle me-1"></i>Unanswered questions always score zero.</div>
+      </div>
+      <div class="form-section d-flex justify-content-end gap-2">
+        <a class="btn btn-light" href="{% if exam %}{{ exam.get_absolute_url }}{% else %}{% url 'exams:list' %}{% endif %}">Cancel</a>
+        <button class="btn btn-primary" type="submit">{% if exam %}Save changes{% else %}Create examination{% endif %} <i class="bi bi-arrow-right"></i></button>
+      </div>
+    </section>
+  </div>
+  <div class="col-xl-4">
+    <section class="panel sticky-side">
+      <div class="panel-head"><h2 class="panel-title">Calibrated sheet layouts</h2></div>
+      <ul class="versions">
+        {% for l in layouts %}
+          <li><a href="{{ l.get_absolute_url }}" target="_blank" rel="noopener"><span class="v-badge"><i class="bi bi-grid-3x3-gap"></i></span>
+            <span class="min-w-0"><span class="d-block fw-semibold small text-truncate">{{ l.name }}</span>
+              <span class="d-block small text-muted">{{ l.capacity }} questions · {{ l.option_labels|make_list|join:"" }}{% if l.roll_digits %} · {{ l.roll_digits }}-digit roll no.{% endif %}</span></span></a></li>
+        {% endfor %}
+      </ul>
+      <div class="panel-foot small"><a href="{% url 'exams:layout_create' %}"><i class="bi bi-plus-lg"></i> Add another layout</a></div>
+    </section>
+  </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+  (function () {
+    var toggle = document.getElementById('id_negative_marking'), wrap = document.getElementById('negMarksWrap');
+    function sync() { wrap.style.display = toggle.checked ? '' : 'none'; }
+    toggle.addEventListener('change', sync); sync();
+  })();
+</script>
+{% endblock %}

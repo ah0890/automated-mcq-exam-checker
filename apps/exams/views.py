@@ -1,0 +1,116 @@
+from django.contrib import messages
+from django.core.exceptions import ValidationError
+from django.db.models import Q
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
+
+from apps.core.files import data_path
+from apps.core.previews import image_file_response
+
+from . import services
+from .forms import AssignKeyForm, ExaminationForm, SheetLayoutForm
+from .models import Examination, SheetLayout
+
+
+# --- examinations ----------------------------------------------------------------------
+
+def exam_list(request):
+    query = (request.GET.get("q") or "").strip()
+    exams = Examination.objects.select_related("sheet_layout", "answer_key_version__key")
+    if query:
+        exams = exams.filter(Q(name__icontains=query) | Q(subject__icontains=query) |
+                             Q(class_section__icontains=query) | Q(exam_code__icontains=query))
+    return render(request, "exams/list.html", {"exams": exams, "query": query,
+                                               "has_layouts": SheetLayout.objects.exists()})
+
+
+def exam_create(request):
+    if not SheetLayout.objects.exists():
+        messages.info(request, "First add your answer-sheet layout, so the system knows where the bubbles are.")
+        return redirect("exams:layout_create")
+    form = ExaminationForm(request.POST or None, initial={"sheet_layout": SheetLayout.objects.first()})
+    if request.method == "POST" and form.is_valid():
+        exam = form.save(commit=False)
+        exam.created_by = request.user
+        exam.save()
+        messages.success(request, f"Examination “{exam.name}” created. Next, attach its answer key.")
+        return redirect(exam.get_absolute_url())
+    return render(request, "exams/form.html", {"form": form, "layouts": SheetLayout.objects.all()})
+
+
+def exam_edit(request, uid):
+    exam = get_object_or_404(Examination, uid=uid)
+    if exam.is_finalized:
+        messages.error(request, "Finalized examinations cannot be edited.")
+        return redirect(exam.get_absolute_url())
+    form = ExaminationForm(request.POST or None, instance=exam)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Examination details updated.")
+        return redirect(exam.get_absolute_url())
+    return render(request, "exams/form.html", {"form": form, "exam": exam, "layouts": SheetLayout.objects.all()})
+
+
+def exam_detail(request, uid):
+    exam = get_object_or_404(
+        Examination.objects.select_related("sheet_layout", "answer_key_version__key", "key_assigned_by"), uid=uid)
+    key_form = AssignKeyForm(exam=exam)
+    return render(request, "exams/detail.html", {
+        "exam": exam, "key_form": key_form, "has_compatible_keys": key_form.fields["version"].queryset.exists(),
+    })
+
+
+@require_POST
+def exam_assign_key(request, uid):
+    exam = get_object_or_404(Examination, uid=uid)
+    form = AssignKeyForm(request.POST, exam=exam)
+    if form.is_valid():
+        try:
+            services.assign_key(exam, form.cleaned_data["version"], request.user)
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+        else:
+            v = form.cleaned_data["version"]
+            messages.success(request, f"Answer key “{v.key.title}” (version {v.number}) attached.")
+    else:
+        messages.error(request, "Select a verified answer key with the same number of questions.")
+    return redirect(exam.get_absolute_url())
+
+
+# --- sheet layouts ------------------------------------------------------------------------
+
+def layout_list(request):
+    return render(request, "exams/layouts.html", {"layouts": SheetLayout.objects.all()})
+
+
+def layout_create(request):
+    form = SheetLayoutForm(request.POST or None, request.FILES or None)
+    if request.method == "POST" and form.is_valid():
+        d = form.cleaned_data
+        try:
+            layout = services.create_layout(
+                name=d["name"], code=d["code"], option_labels=d["option_labels"], roll_digits=d["roll_digits"],
+                question_order=d["question_order"], uploaded=d["blank_sheet"], user=request.user)
+        except ValidationError as exc:
+            form.add_error("blank_sheet", exc)
+        else:
+            messages.success(request, f"Sheet calibrated: {layout.capacity} questions"
+                                      f"{f' and a {layout.roll_digits}-digit roll number' if layout.roll_digits else ''}"
+                                      " detected. Check the highlighted bubbles below.")
+            return redirect(layout.get_absolute_url())
+    return render(request, "exams/layout_form.html", {"form": form})
+
+
+def layout_detail(request, uid):
+    layout = get_object_or_404(SheetLayout, uid=uid)
+    return render(request, "exams/layout_detail.html", {"layout": layout,
+                                                        "exams": layout.examinations.all()})
+
+
+def layout_preview(request, uid):
+    layout = get_object_or_404(SheetLayout, uid=uid)
+    rel = layout.blank_path.rsplit("/", 1)[0] + "/preview.png"
+    if not data_path(rel).exists():
+        raise Http404
+    return image_file_response(rel)

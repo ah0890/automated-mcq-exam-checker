@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Sheet layouts{% endblock %}
+{% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Sheet Layouts</span>{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Setup</div>
+    <h1 class="page-title">Answer-sheet layouts</h1>
+    <p class="page-subtitle">Each layout is learnt from an image of the blank sheet: corner markers, answer bubbles and the roll-number grid are located automatically.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'exams:layout_create' %}"><i class="bi bi-plus-lg"></i> Add layout</a>
+</header>
+<section class="panel">
+  {% if layouts %}
+    <div class="table-responsive"><table class="table-x">
+      <thead><tr><th>Layout</th><th>Questions</th><th>Options</th><th>Roll number</th><th>Examinations</th><th>Added</th><th></th></tr></thead>
+      <tbody>
+      {% for l in layouts %}
+        <tr>
+          <td><a class="cell-title" href="{{ l.get_absolute_url }}">{{ l.name }}</a><div class="cell-sub">{{ l.code|default:l.blank_name }}</div></td>
+          <td class="tabular">{{ l.capacity }}</td>
+          <td>{{ l.option_labels|make_list|join:", " }}</td>
+          <td>{% if l.roll_digits %}{{ l.roll_digits }} digits{% else %}<span class="text-muted">None</span>{% endif %}</td>
+          <td class="tabular">{{ l.examinations.count }}</td>
+          <td class="cell-sub">{{ l.created_at|date:"j M Y" }}</td>
+          <td class="text-end"><a class="btn btn-light btn-sm" href="{{ l.get_absolute_url }}">View</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}
+    <div class="empty">
+      <div class="empty-ic"><i class="bi bi-grid-3x3-gap"></i></div>
+      <h3>No sheet layouts yet</h3>
+      <p>Upload a blank, unmarked copy of your answer sheet. This is done once per sheet design.</p>
+      <a class="btn btn-primary" href="{% url 'exams:layout_create' %}"><i class="bi bi-upload"></i> Upload blank sheet</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

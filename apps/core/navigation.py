@@ -10,9 +10,10 @@ NAV_SECTIONS = [
         ("Dashboard", "core:dashboard", "grid-1x2", None),
     ]),
     ("Setup", [
-        ("Examinations", None, "journal-text", 2),
-        ("Answer Key Library", None, "key", 2),
-        ("Students", None, "people", 2),
+        ("Examinations", "exams:list", "journal-text", None),
+        ("Answer Key Library", "answerkeys:library", "key", None),
+        ("Students", "students:list", "people", None),
+        ("Sheet Layouts", "exams:layouts", "grid-3x3-gap", None),
     ]),
     ("Processing", [
         ("Upload Student Papers", None, "cloud-arrow-up", 3),

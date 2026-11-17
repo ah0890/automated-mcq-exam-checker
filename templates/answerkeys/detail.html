@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}{{ key.title }}{% endblock %}
+{% block crumbs %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{% url 'answerkeys:library' %}">Answer Key Library</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">{{ key.title }}</span>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Answer key{% if key.subject %} · {{ key.subject }}{% endif %}</div>
+    <h1 class="page-title">{{ key.title }}</h1>
+    <p class="page-subtitle">Version {{ selected.number }} · {{ selected.num_questions }} questions · options {{ selected.option_labels|make_list|join:", " }}</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    {% if selected.is_verified %}
+      <div class="dropdown">
+        <button class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="{% url 'answerkeys:export' selected.uid 'xlsx' %}"><i class="bi bi-file-earmark-spreadsheet"></i> Excel (.xlsx)</a></li>
+          <li><a class="dropdown-item" href="{% url 'answerkeys:export' selected.uid 'json' %}"><i class="bi bi-filetype-json"></i> JSON</a></li>
+          {% if selected.source_path %}<li><a class="dropdown-item" href="{% url 'answerkeys:source' selected.uid %}"><i class="bi bi-file-earmark"></i> Original document</a></li>{% endif %}
+        </ul>
+      </div>
+    {% endif %}
+    {% if draft %}
+      <a class="btn btn-primary" href="{% url 'answerkeys:verify' draft.uid %}"><i class="bi bi-patch-check"></i> Continue verifying v{{ draft.number }}</a>
+    {% elif selected.is_verified %}
+      <form method="post" action="{% url 'answerkeys:revise' selected.uid %}">{% csrf_token %}
+        <button class="btn btn-primary"><i class="bi bi-pencil-square"></i> Edit as new version</button>
+      </form>
+    {% endif %}
+  </div>
+</header>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <section class="panel mb-4">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">Answers</h2>
+          <p class="panel-sub">
+            {% if selected.is_verified %}Verified by {{ selected.verified_by.get_username|default:"—" }} on {{ selected.verified_at|date:"j M Y, H:i" }}
+            {% else %}This version is a draft and cannot be used for marking.{% endif %}
+          </p>
+        </div>
+        {% if selected.is_verified %}<span class="pill pill-success">Verified</span>{% else %}<span class="pill pill-warning">Draft</span>{% endif %}
+      </div>
+      <div class="panel-body">
+        <div class="key-table">
+          {% for q, a in selected.ordered_answers %}
+            <div class="key-cell"><span class="q">{{ q }}</span><span class="a">{{ a|default:"—" }}</span></div>
+          {% endfor %}
+        </div>
+      </div>
+      {% if selected.change_note %}<div class="panel-foot small"><i class="bi bi-chat-left-text me-1 text-muted"></i>{{ selected.change_note }}</div>{% endif %}
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2 class="panel-title">Answer distribution</h2><p class="panel-sub">How often each option is correct</p></div></div>
+      <div class="panel-body"><div class="dist">
+        {% for label, n in selected.distribution %}<div class="dist-item"><b>{{ n }}</b><span>Option {{ label }}</span></div>{% endfor %}
+      </div></div>
+    </section>
+  </div>
+
+  <div class="col-xl-4">
+    <section class="panel mb-4">
+      <div class="panel-head"><div><h2 class="panel-title">Version history</h2><p class="panel-sub">Earlier versions are never changed</p></div></div>
+      <ul class="versions">
+        {% for v in versions %}
+          <li><a href="?v={{ v.number }}" class="{% if v.pk == selected.pk %}current{% endif %}">
+            <span class="v-badge">v{{ v.number }}</span>
+            <span class="flex-grow-1 min-w-0">
+              <span class="d-block fw-semibold small">{{ v.get_source_display }}</span>
+              <span class="d-block cell-sub small text-muted">{{ v.created_at|date:"j M Y, H:i" }}{% if v.created_by %} · {{ v.created_by.get_username }}{% endif %}</span>
+            </span>
+            {% if v.is_verified %}<span class="pill pill-success">Verified</span>{% else %}<span class="pill pill-warning">Draft</span>{% endif %}
+          </a></li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2 class="panel-title">Used by examinations</h2><p class="panel-sub">Version {{ selected.number }}</p></div></div>
+      {% if exams %}
+        <ul class="versions">
+          {% for e in exams %}
+            <li><a href="{{ e.get_absolute_url }}"><span class="v-badge"><i class="bi bi-journal-text"></i></span>
+              <span class="min-w-0"><span class="d-block fw-semibold small text-truncate">{{ e.name }}</span><span class="d-block small text-muted">{{ e.class_section }} · {{ e.exam_date|date:"j M Y" }}</span></span></a></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="panel-body small text-muted">Not attached to any examination yet. Attach it from the examination's page.</div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

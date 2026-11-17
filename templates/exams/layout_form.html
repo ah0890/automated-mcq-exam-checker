@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Add sheet layout{% endblock %}
+{% block crumbs %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{% url 'exams:layouts' %}">Sheet Layouts</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Add</span>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Sheet layouts</div>
+    <h1 class="page-title">Add an answer-sheet layout</h1>
+    <p class="page-subtitle">Upload a blank sheet and describe it. Detection is checked against what you enter, so a mismatch is reported instead of guessed.</p>
+  </div>
+</header>
+<div class="row g-4">
+  <div class="col-xl-8">
+    <form class="panel" method="post" enctype="multipart/form-data" novalidate data-loading="Calibrating the answer sheet…" data-loading-sub="Locating corner markers and bubbles.">{% csrf_token %}
+      <div class="form-section">
+        <div class="form-section-title">Layout details</div>
+        <div class="form-section-sub">Describe the sheet as printed.</div>
+        <div class="row">
+          <div class="col-md-7">{% include "components/field.html" with field=form.name %}</div>
+          <div class="col-md-5">{% include "components/field.html" with field=form.code %}</div>
+          <div class="col-md-4">{% include "components/field.html" with field=form.option_labels %}</div>
+          <div class="col-md-4">{% include "components/field.html" with field=form.roll_digits %}</div>
+          <div class="col-md-4">{% include "components/field.html" with field=form.question_order %}</div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">Blank sheet</div>
+        <div class="form-section-sub">A clean, unmarked, upright copy. A digital PDF or a flat 300 dpi scan works best.</div>
+        <label class="dropzone{% if form.blank_sheet.errors %} is-invalid{% endif %}">
+          <input type="file" name="blank_sheet" accept=".pdf,.jpg,.jpeg,.png" required>
+          <div class="dz-ic"><i class="bi bi-file-earmark-image"></i></div>
+          <div class="dz-title">Drop the blank sheet here, or click to browse</div>
+          <div class="dz-sub">PDF, JPG or PNG — first page is used</div>
+          <div class="dz-file"></div>
+        </label>
+        {% for e in form.blank_sheet.errors %}<div class="invalid-feedback d-block mt-2">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="form-section d-flex justify-content-end gap-2">
+        <a class="btn btn-light" href="{% url 'exams:layouts' %}">Cancel</a>
+        <button class="btn btn-primary" type="submit">Calibrate sheet <i class="bi bi-arrow-right"></i></button>
+      </div>
+    </form>
+  </div>
+  <div class="col-xl-4">
+    <section class="panel">
+      <div class="panel-head"><h2 class="panel-title">Sheet requirements</h2></div>
+      <div class="panel-body">
+        <ul class="checklist">
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">Four solid corner squares</div><div class="check-desc">Used to straighten every scanned page.</div></div></li>
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">Printed circular bubbles</div><div class="check-desc">One row of options per question, in one or more columns.</div></div></li>
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">Roll-number bubble grid</div><div class="check-desc">Optional. One column of 0–9 bubbles per digit.</div></div></li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
