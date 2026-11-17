@@ -133,7 +133,14 @@ class Examination(models.Model):
             return "finalized"
         if not self.answer_key_version_id:
             return "needs_key"
-        return "ready_for_papers"
+        if not self.active_papers().exists():
+            return "ready_for_papers"
+        return "ready_to_process"
+
+    def active_papers(self):
+        from apps.papers.models import Paper
+
+        return Paper.objects.filter(exam=self).exclude(status=Paper.Status.EXCLUDED)
 
     @property
     def newer_key_available(self):

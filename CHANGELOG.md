@@ -1,5 +1,23 @@
 # Changelog
 
+## Milestone 3 — Student paper upload and storage (2026-11-17)
+
+### Added
+
+- **Upload from the dashboard**, from a dedicated Upload Student Papers page
+  and from each examination's workspace: choose the examination, drop in the
+  whole class's PDF/JPG/PNG files, and watch per-file progress and results.
+  One failed file never stops the batch; works without JavaScript too.
+- PDFs containing a whole class are split into individual papers, with a
+  configurable number of pages per student; short last papers are flagged.
+- Duplicate protection: identical files (SHA-256) and identical pages inside
+  different files (page fingerprint) are skipped and reported.
+- Per-examination storage of read-only originals; papers are numbered in
+  upload order and can be excluded/restored but never deleted.
+- Examination workspace: paper counts, paper table with thumbnails, paper
+  viewer with previous/next navigation and original-file download.
+- 15 new tests (72 total), including the real sample paper.
+
 ## Milestone 2 — Examinations and Answer Key Library (2026-11-17)
 
 ### Added

@@ -1,0 +1,60 @@
+{% comment %}
+Paper uploader. Context: either `fixed_exam` (upload into one examination) or
+`exams` + optional `selected` (teacher chooses the examination).
+Works without JavaScript (normal multi-file form post); with JavaScript files
+upload one by one with progress, and one failed file never stops the batch.
+{% endcomment %}
+<form class="uploader" method="post" enctype="multipart/form-data"
+      action="{% if fixed_exam %}{% url 'papers:upload' fixed_exam.uid %}{% endif %}" data-uploader
+      {% if fixed_exam %}data-exam-url="{{ fixed_exam.get_absolute_url }}"{% endif %}>
+  {% csrf_token %}
+  {% if not fixed_exam %}
+    <div class="mb-3">
+      <label class="form-label" for="up-exam-{{ uploader_id|default:'x' }}">Examination</label>
+      <select class="form-select" id="up-exam-{{ uploader_id|default:'x' }}" data-exam-select required>
+        <option value="">Select the examination these papers belong to</option>
+        {% for e in exams %}
+          <option value="{% url 'papers:upload' e.uid %}" data-exam-url="{{ e.get_absolute_url }}"
+                  {% if selected == e.uid|stringformat:"s" or exams|length == 1 %}selected{% endif %}>
+            {{ e.name }} — {{ e.class_section }} · {{ e.exam_date|date:"j M Y" }}{% if not e.answer_key_version_id %} (no answer key yet){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+  {% endif %}
+
+  <label class="dropzone">
+    <input type="file" name="files" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required>
+    <div class="dz-ic"><i class="bi bi-cloud-arrow-up"></i></div>
+    <div class="dz-title">Drop the class's answer sheets here, or click to browse</div>
+    <div class="dz-sub">PDF, JPG or PNG · select many files at once · up to {{ max_upload_mb|default:50 }} MB each</div>
+    <div class="dz-file"></div>
+  </label>
+
+  <div class="d-flex flex-wrap align-items-end gap-3 mt-3">
+    <div style="width:170px">
+      <label class="form-label small mb-1" for="up-ppp-{{ uploader_id|default:'x' }}">Pages per student in PDFs</label>
+      <select class="form-select form-select-sm" id="up-ppp-{{ uploader_id|default:'x' }}" name="pages_per_paper">
+        <option value="1" selected>1 page</option>
+        <option value="2">2 pages</option>
+        <option value="3">3 pages</option>
+        <option value="4">4 pages</option>
+      </select>
+    </div>
+    <div class="flex-grow-1 small text-muted">A PDF containing the whole class is split into one paper per student. Duplicate files and pages already uploaded are skipped automatically.</div>
+    <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> Upload papers</button>
+  </div>
+
+  <div class="upload-progress mt-4" hidden>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div class="fw-semibold small" data-summary>Uploading…</div>
+      <div class="small text-muted tabular" data-counter></div>
+    </div>
+    <div class="progress mb-3" style="height:6px"><div class="progress-bar" data-total-bar style="width:0%"></div></div>
+    <ul class="upload-list" data-list></ul>
+    <div class="d-flex gap-2 mt-3" data-done hidden>
+      <a class="btn btn-primary" data-view-link href="#"><i class="bi bi-files"></i> View uploaded papers</a>
+      <button class="btn btn-light" type="button" data-reset>Upload more</button>
+    </div>
+  </div>
+</form>

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Upload student papers{% endblock %}
+{% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Upload Student Papers</span>{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Processing</div>
+    <h1 class="page-title">Upload student papers</h1>
+    <p class="page-subtitle">Upload the whole class's answer sheets in one go. Originals are stored unchanged and linked to the examination you choose.</p>
+  </div>
+</header>
+<div class="row g-4">
+  <div class="col-xl-8">
+    <section class="panel">
+      <div class="panel-body">
+        {% if exams %}
+          {% include "papers/_uploader.html" with exams=exams selected=selected uploader_id="page" %}
+        {% else %}
+          <div class="empty py-4">
+            <div class="empty-ic"><i class="bi bi-journal-plus"></i></div>
+            <h3>Create an examination first</h3>
+            <p>Papers are always uploaded into an examination, so their results use the right answer key and marking rules.</p>
+            <a class="btn btn-primary" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+  <div class="col-xl-4">
+    <section class="panel">
+      <div class="panel-head"><h2 class="panel-title">Scanning tips</h2></div>
+      <div class="panel-body">
+        <ul class="checklist">
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">Keep all four corner squares visible</div><div class="check-desc">They are used to straighten each page. One cropped corner is tolerated.</div></div></li>
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">Scan at 200–300 dpi</div><div class="check-desc">Grayscale is fine. Phone photos work if the sheet is flat and evenly lit.</div></div></li>
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">Any order, any orientation</div><div class="check-desc">Sideways and upside-down pages are corrected automatically.</div></div></li>
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">Re-uploading is safe</div><div class="check-desc">Files and pages already in the examination are detected and skipped.</div></div></li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

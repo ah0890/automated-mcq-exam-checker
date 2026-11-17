@@ -16,7 +16,7 @@ NAV_SECTIONS = [
         ("Sheet Layouts", "exams:layouts", "grid-3x3-gap", None),
     ]),
     ("Processing", [
-        ("Upload Student Papers", None, "cloud-arrow-up", 3),
+        ("Upload Student Papers", "papers:upload_page", "cloud-arrow-up", None),
         ("Processing Center", None, "cpu", 6),
         ("Manual Verification", None, "patch-check", 4),
     ]),

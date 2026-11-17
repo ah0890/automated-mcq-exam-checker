@@ -32,6 +32,7 @@ def stage_pill(exam):
     labels = {
         "needs_key": ("pill-warning", "Needs answer key"),
         "ready_for_papers": ("pill-success", "Ready for papers"),
+        "ready_to_process": ("pill-success", "Papers uploaded"),
         "finalized": ("pill-neutral", "Finalized"),
     }
     css, text = labels.get(exam.stage, ("pill-neutral", exam.stage))

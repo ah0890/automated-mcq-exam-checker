@@ -27,32 +27,23 @@
 
 <div class="row g-4 mb-4">
   <div class="col-xl-7">
-    <section class="panel h-100">
+    <section class="panel h-100" id="upload">
       <div class="panel-head">
-        <div><h2 class="panel-title">Upload student papers</h2><p class="panel-sub">Examinations with a verified answer key, ready for the class's answer sheets</p></div>
-        <span class="pill pill-neutral pill-plain">Upload: Milestone 3</span>
+        <div><h2 class="panel-title">Upload student papers</h2><p class="panel-sub">Add a whole class's answer sheets to an examination</p></div>
+        <a class="btn btn-light btn-sm" href="{% url 'papers:upload_page' %}"><i class="bi bi-arrows-fullscreen"></i></a>
       </div>
-      {% if ready_exams %}
-        <ul class="versions">
-          {% for e in ready_exams %}
-            <li><a href="{{ e.get_absolute_url }}">
-              <span class="v-badge"><i class="bi bi-cloud-arrow-up"></i></span>
-              <span class="flex-grow-1 min-w-0">
-                <span class="d-block fw-semibold small text-truncate">{{ e.name }}</span>
-                <span class="d-block small text-muted">{{ e.class_section }} · {{ e.exam_date|date:"j M Y" }} · {{ e.num_questions }} questions</span>
-              </span>
-              <span class="btn btn-light btn-sm">Open</span>
-            </a></li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <div class="empty py-4">
-          <div class="empty-ic"><i class="bi bi-cloud-arrow-up"></i></div>
-          <h3>No examination is ready for papers yet</h3>
-          <p>Create an examination and attach a verified answer key. It will then appear here for uploading the class's answer sheets.</p>
-          <a class="btn btn-primary" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
-        </div>
-      {% endif %}
+      <div class="panel-body">
+        {% if upload_exams %}
+          {% include "papers/_uploader.html" with exams=upload_exams selected=default_upload_exam uploader_id="dash" %}
+        {% else %}
+          <div class="empty py-4">
+            <div class="empty-ic"><i class="bi bi-cloud-arrow-up"></i></div>
+            <h3>Create an examination to upload papers</h3>
+            <p>Papers are uploaded into an examination so they are marked with its verified answer key and rules.</p>
+            <a class="btn btn-primary" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
+          </div>
+        {% endif %}
+      </div>
     </section>
   </div>
   <div class="col-xl-5">
@@ -88,7 +79,7 @@
   </div>
   {% if recent_exams %}
     <div class="table-responsive"><table class="table-x">
-      <thead><tr><th>Examination</th><th>Class</th><th>Date</th><th>Answer key</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Examination</th><th>Class</th><th>Date</th><th>Answer key</th><th>Papers</th><th>Status</th><th></th></tr></thead>
       <tbody>
       {% for e in recent_exams %}
         <tr>
@@ -96,6 +87,7 @@
           <td class="nowrap">{{ e.class_section }}</td>
           <td class="tabular">{{ e.exam_date|date:"j M Y" }}</td>
           <td class="small">{% if e.answer_key_version %}{{ e.answer_key_version.key.title }} <span class="text-muted">v{{ e.answer_key_version.number }}</span>{% else %}<span class="text-muted">Not attached</span>{% endif %}</td>
+          <td class="tabular">{{ e.paper_count }}</td>
           <td>{% stage_pill e %}</td>
           <td class="text-end"><a class="btn btn-light btn-sm" href="{{ e.get_absolute_url }}">Open</a></td>
         </tr>

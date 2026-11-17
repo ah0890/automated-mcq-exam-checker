@@ -7,9 +7,9 @@ and performance analytics.
 All processing runs locally. No paid services or external AI APIs are used,
 and examination data never leaves the machine.
 
-> **Status:** Milestones 1–2 are complete: OMR engine, sheet layouts,
-> examinations, the Answer Key Library and class lists. Paper upload,
-> processing and results follow milestone by milestone — see
+> **Status:** Milestones 1–3 are complete: OMR engine, sheet layouts,
+> examinations, the Answer Key Library, class lists and paper upload.
+> Processing and results follow milestone by milestone — see
 > [CHANGELOG.md](CHANGELOG.md) and [context.md](context.md).
 
 ## Features available now
@@ -21,6 +21,9 @@ and examination data never leaves the machine.
   keys; verify every answer beside the original; versioned, immutable once
   verified; export to Excel or JSON.
 - **Students** — class lists imported from Excel or CSV.
+- **Student papers** — upload a whole class's PDF/JPG/PNG answer sheets from
+  the dashboard; PDFs are split per student, duplicates are skipped, and
+  originals are kept read-only.
 
 ## How it works
 
@@ -91,6 +94,7 @@ apps/core/       Dashboard, settings, file storage, previews
 apps/exams/      Sheet layouts and examinations
 apps/answerkeys/ Answer Key Library and key extraction
 apps/students/   Class lists
+apps/papers/     Student paper upload, storage and viewer
 omr/             Stand-alone OMR engine (no Django dependency)
 templates/       HTML templates
 static/          CSS and vendored Bootstrap 5, Bootstrap Icons, Chart.js

@@ -18,17 +18,19 @@ client product (polished SaaS-quality UI).
 
 ## Current milestone
 
-**Milestone 2 — complete.** Next: **Milestone 3 — Student paper upload and storage**
-(dashboard + examination workspace upload, batch PDF/JPG/PNG, PDF page
-splitting, duplicate detection by SHA-256, per-exam storage).
+**Milestone 3 — complete.** Next: **Milestone 4 — OMR processing and manual
+verification** (resumable background worker reading each paper with the `omr`
+engine; roll number + answers stored with confidence; review screen with
+original image, cropped question, detected answer and correction; accuracy
+report on the samples).
 
 | # | Milestone | Status |
 |---|-----------|--------|
 | 1 | Inspect documents, foundation, OMR engine | Done |
 | — | UI redesign (design system) | Done |
 | 2 | Examinations, sheet layouts, Answer Key Library, students | Done |
-| 3 | Student paper upload and storage | Next |
-| 4 | OMR integration, manual verification UI, accuracy report | Pending (engine core done in M1) |
+| 3 | Student paper upload and storage | Done |
+| 4 | OMR integration, manual verification UI, accuracy report | Next (engine core done in M1) |
 | 5 | Evaluation engine | Pending |
 | 6 | Processing center, results dashboard, analytics | Pending |
 | 7 | Excel/PDF reports, backups | Pending |
@@ -42,7 +44,9 @@ splitting, duplicate detection by SHA-256, per-exam storage).
   served only through authenticated views (no public media URL).
 - Apps: `apps/core` (dashboard, settings, file storage, previews),
   `apps/exams` (SheetLayout, Examination), `apps/answerkeys` (AnswerKey,
-  AnswerKeyVersion, extraction), `apps/students` (Student roster).
+  AnswerKeyVersion, extraction), `apps/students` (Student roster),
+  `apps/papers` (UploadBatch, SourceFile, Paper; upload, splitting,
+  duplicate detection, viewer).
 - Stand-alone packages (no Django imports): `omr/`, and
   `apps/answerkeys/extraction.py`. The evaluation engine (M5) will also be
   stand-alone.
@@ -51,6 +55,13 @@ splitting, duplicate detection by SHA-256, per-exam storage).
 
 ### Data model rules
 
+- Papers: each uploaded file is a SourceFile (unique per exam by SHA-256);
+  each student's sheet is a Paper = consecutive pages of a source file
+  (pages per student configurable for PDFs, default 1; images = 1 page).
+  A Paper's `fingerprint` hashes a small render of its first page, so the
+  same scan inside a different file is also skipped. Papers are never
+  deleted — they can be excluded/restored. Finalized exams reject uploads.
+  Originals: `data/examinations/<exam uid>/original_papers/<random>.<ext>`.
 - Answer keys are versioned. A version is DRAFT until verified; verified
   versions are immutable (save/delete raise). Editing creates a new draft
   version. Examinations reference a specific verified version
@@ -72,6 +83,11 @@ splitting, duplicate detection by SHA-256, per-exam storage).
 - `apps/answerkeys/extraction.py` — key extraction (PDF text layer, OCR with
   voting, Excel, Word, CSV, JSON).
 - `apps/answerkeys/services.py`, `apps/exams/services.py` — business logic.
+- `apps/papers/services.py` — `add_file()` (validate, dedupe, store, split),
+  `page_fingerprints()`, `paper_stats()`.
+- `templates/papers/_uploader.html` + `static/js/uploader.js` — the uploader
+  used on the dashboard, the upload page and the examination workspace
+  (one request per file with progress; plain form post without JavaScript).
 - `static/css/app.css` (design tokens, shell), `static/css/components.css`.
 - `omr/` — see Milestone 1 notes below.
 
@@ -107,14 +123,17 @@ splitting, duplicate detection by SHA-256, per-exam storage).
 
 ## Tests actually performed
 
-- `manage.py test`: **57 tests, all passing** (2026-11-17).
+- `manage.py test`: **72 tests, all passing** (2026-11-17).
 - Real sample student sheet: OMR output matches manual ground truth exactly
   (roll number; 46 single answers; 1 multiple; 2 blanks; 1 faint mark →
   manual verification), also under 9 artificial distortions.
 - Real sample answer key, end-to-end through the web UI (temporary database):
   blank sheet calibrated (50 questions, 5-digit roll grid, ~1 s); key PDF read
   via text layer **50/50, identical to the manual reading**, no warnings;
-  verified; examination created; key attached.
+  verified; examination created; key attached; the real student sheet
+  uploaded through the AJAX upload endpoint (1 paper), re-upload under a
+  different name detected as a duplicate; workspace, viewer and thumbnails
+  rendered and checked visually.
 - OCR of the same key rendered as an image (benchmark, artificial
   variants): 300 dpi clean 50/50 and 3° tilt 50/50 with 0 wrong; 300 dpi JPEG
   q40 48/50, 0 wrong; heavier noise and ≤ 200 dpi images recover far fewer and
@@ -132,9 +151,10 @@ splitting, duplicate detection by SHA-256, per-exam storage).
 
 ## Pending work / next steps
 
-1. Milestone 3: paper upload from the dashboard and examination workspace;
-   batch upload; PDF splitting into one paper per page (configurable pages per
-   student); duplicate detection; per-exam storage; paper list with previews.
+1. Milestone 4: processing worker (management command + database job state,
+   resumable, idempotent), OMR reading of each paper, roll-number cross-check,
+   template/exam-ID mismatch detection, review queue UI with per-question
+   crops and corrections, accuracy measurement on samples.
 2. Ask the user for more completed sheets (ideally real scans) and a class list.
 
 ## Git

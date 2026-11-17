@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Paper {{ paper.sequence }} · {{ exam.name }}{% endblock %}
+{% block crumbs %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{% url 'exams:list' %}">Examinations</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{{ exam.get_absolute_url }}#papers">{{ exam.name }}</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Paper {{ paper.sequence }}</span>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">{{ exam.name }} · {{ exam.class_section }}</div>
+    <h1 class="page-title">Paper {{ paper.sequence }}</h1>
+    <p class="page-subtitle">{{ paper.source.original_name }} · {{ paper.page_label }}</p>
+  </div>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <span class="pill {{ paper.status_css }}">{{ paper.get_status_display }}</span>
+    <div class="btn-group">
+      {% if prev_paper %}<a class="btn btn-light" href="{{ prev_paper.get_absolute_url }}" title="Previous paper"><i class="bi bi-chevron-left"></i></a>{% endif %}
+      {% if next_paper %}<a class="btn btn-light" href="{{ next_paper.get_absolute_url }}" title="Next paper"><i class="bi bi-chevron-right"></i></a>{% endif %}
+    </div>
+  </div>
+</header>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2 class="panel-title">Original paper</h2><p class="panel-sub">Exactly as uploaded</p></div>
+        <a class="btn btn-light btn-sm" href="{% url 'papers:source' paper.uid %}"><i class="bi bi-download"></i> Original file</a>
+      </div>
+      <div class="panel-body">
+        <div class="paper-viewer">
+          {% for p in paper.pages %}<img src="{% url 'papers:page_image' paper.uid p %}" alt="Paper {{ paper.sequence }}, page {{ p }}" loading="lazy">{% endfor %}
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="col-xl-4">
+    <section class="panel mb-4">
+      <div class="panel-head"><h2 class="panel-title">Details</h2></div>
+      <div class="panel-body">
+        <dl class="kv">
+          <dt>Status</dt><dd>{{ paper.get_status_display }}</dd>
+          {% if paper.status_note %}<dt>Note</dt><dd>{{ paper.status_note }}</dd>{% endif %}
+          <dt>Source file</dt><dd>{{ paper.source.original_name }}</dd>
+          <dt>Pages</dt><dd>{{ paper.page_label }}</dd>
+          <dt>Uploaded</dt><dd>{{ paper.created_at|date:"j M Y, H:i" }}</dd>
+          <dt>File size</dt><dd>{{ paper.source.size|filesizeformat }}</dd>
+          <dt>Fingerprint</dt><dd class="mono small">{{ paper.source.sha256|slice:":16" }}…</dd>
+        </dl>
+        {% if paper.is_incomplete %}
+          <div class="flash warning mt-3"><i class="ic bi bi-exclamation-triangle-fill"></i><div class="small">This paper has fewer pages than expected.</div></div>
+        {% endif %}
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div><h2 class="panel-title">Recognition</h2><p class="panel-sub">Roll number and answers</p></div></div>
+      <div class="panel-body small text-muted">
+        Reading this paper's roll number and answers is added with the processing engine in Milestone 4.
+      </div>
+      {% if not exam.is_finalized %}
+      <div class="panel-foot">
+        <form method="post" action="{% url 'papers:set_excluded' paper.uid %}">{% csrf_token %}
+          {% if paper.status == "excluded" %}
+            <input type="hidden" name="exclude" value="0">
+            <button class="btn btn-light btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Restore paper</button>
+          {% else %}
+            <input type="hidden" name="exclude" value="1">
+            <button class="btn btn-light btn-sm text-danger" onclick="return confirm('Exclude this paper from processing and results? It stays stored and can be restored.');"><i class="bi bi-slash-circle"></i> Exclude from results</button>
+          {% endif %}
+        </form>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

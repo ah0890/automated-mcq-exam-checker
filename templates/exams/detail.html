@@ -27,10 +27,18 @@
     {% else %}<a class="btn btn-primary" href="{% url 'answerkeys:upload' %}">Upload answer key</a>{% endif %}
   </div>
 {% elif exam.stage == "ready_for_papers" %}
+  <div class="next-action mb-4">
+    <span class="na-ic"><i class="bi bi-cloud-arrow-up"></i></span>
+    <div class="flex-grow-1"><div class="na-title">Next: upload the class's answer sheets</div>
+      <div class="na-text">The verified answer key is attached. Upload every student's paper below.</div></div>
+    <a class="btn btn-primary" href="#papers">Upload papers</a>
+  </div>
+{% elif exam.stage == "ready_to_process" %}
   <div class="next-action done mb-4">
     <span class="na-ic"><i class="bi bi-check-lg"></i></span>
-    <div class="flex-grow-1"><div class="na-title">Ready for student papers</div>
-      <div class="na-text">The answer key is attached. Uploading the class's answer sheets is added in the next release (Milestone 3).</div></div>
+    <div class="flex-grow-1"><div class="na-title">{{ paper_stats.total }} paper{{ paper_stats.total|pluralize }} uploaded</div>
+      <div class="na-text">Reading roll numbers and answers is added with the processing engine (Milestone 4). You can keep adding papers.</div></div>
+    <a class="btn btn-light" href="#papers">View papers</a>
   </div>
 {% endif %}
 
@@ -40,6 +48,53 @@
   <div class="col-6 col-lg-3"><div class="panel stat"><div class="stat-label"><i class="bi bi-flag"></i> Pass mark</div><div class="stat-value">{{ exam.pass_marks|floatformat:"-2" }}</div><div class="stat-foot">{{ exam.passing_percentage|floatformat:"-2" }}% of maximum</div></div></div>
   <div class="col-6 col-lg-3"><div class="panel stat"><div class="stat-label"><i class="bi bi-dash-circle"></i> Negative marking</div><div class="stat-value">{% if exam.negative_marking %}−{{ exam.negative_marks|floatformat:"-2" }}{% else %}None{% endif %}</div><div class="stat-foot">{% if exam.negative_marking %}per wrong answer{% else %}Wrong answers score zero{% endif %}</div></div></div>
 </div>
+
+
+<section class="panel mb-4" id="papers">
+  <div class="panel-head">
+    <div><h2 class="panel-title">Student papers</h2>
+      <p class="panel-sub">{% if paper_stats.total %}{{ paper_stats.total }} paper{{ paper_stats.total|pluralize }} from {{ paper_stats.files }} file{{ paper_stats.files|pluralize }}{% if paper_stats.excluded %} · {{ paper_stats.excluded }} excluded{% endif %}{% else %}No papers uploaded yet{% endif %}</p></div>
+    {% if papers and not exam.is_finalized %}
+      <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#uploadBox" aria-expanded="false"><i class="bi bi-upload"></i> Upload more</button>
+    {% endif %}
+  </div>
+  {% if not exam.is_finalized %}
+    <div class="collapse{% if not papers %} show{% endif %}" id="uploadBox">
+      <div class="panel-body border-bottom">
+        {% if not exam.answer_key_version %}
+          <div class="flash warning mb-3"><i class="ic bi bi-exclamation-triangle-fill"></i><div class="small">You can upload papers now, but they can only be marked once a verified answer key is attached.</div></div>
+        {% endif %}
+        {% include "papers/_uploader.html" with fixed_exam=exam uploader_id="exam" %}
+      </div>
+    </div>
+  {% endif %}
+  {% if papers %}
+    <div class="row g-0 border-bottom">
+      <div class="col-6 col-md-3 stat border-end"><div class="stat-label">Uploaded</div><div class="stat-value">{{ paper_stats.total }}</div></div>
+      <div class="col-6 col-md-3 stat border-end"><div class="stat-label">Awaiting processing</div><div class="stat-value">{{ paper_stats.awaiting }}</div></div>
+      <div class="col-6 col-md-3 stat border-end"><div class="stat-label">Needs review</div><div class="stat-value">{{ paper_stats.needs_review }}</div></div>
+      <div class="col-6 col-md-3 stat"><div class="stat-label">Incomplete</div><div class="stat-value">{{ paper_stats.incomplete }}</div></div>
+    </div>
+    <div class="table-responsive" style="max-height:560px">
+      <table class="table-x">
+        <thead><tr><th style="width:70px"></th><th>Paper</th><th>Source file</th><th>Pages</th><th>Uploaded</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for p in papers %}
+          <tr{% if p.status == "excluded" %} class="opacity-50"{% endif %}>
+            <td><a href="{{ p.get_absolute_url }}"><img class="paper-thumb" src="{% url 'papers:page_image' p.uid p.first_page %}?size=thumb" alt="" loading="lazy"></a></td>
+            <td><a class="cell-title" href="{{ p.get_absolute_url }}">Paper {{ p.sequence }}</a>{% if p.is_incomplete %}<div class="cell-sub text-warning-emphasis">Incomplete</div>{% endif %}</td>
+            <td class="small text-truncate" style="max-width:260px">{{ p.source.original_name }}</td>
+            <td class="small nowrap">{{ p.page_label }}</td>
+            <td class="cell-sub nowrap">{{ p.created_at|date:"j M, H:i" }}</td>
+            <td><span class="pill {{ p.status_css }}">{{ p.get_status_display }}</span></td>
+            <td class="text-end"><a class="btn btn-light btn-sm" href="{{ p.get_absolute_url }}">View</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</section>
 
 <div class="row g-4">
   <div class="col-xl-7">
@@ -94,17 +149,6 @@
   </div>
 
   <div class="col-xl-5">
-    <section class="panel mb-4">
-      <div class="panel-head"><div><h2 class="panel-title">Student papers</h2><p class="panel-sub">Upload, processing and results</p></div></div>
-      <div class="panel-body">
-        <div class="empty py-3">
-          <div class="empty-ic"><i class="bi bi-cloud-arrow-up"></i></div>
-          <h3>Paper upload arrives in Milestone 3</h3>
-          <p>You will upload the whole class's sheets here (PDF, JPG or PNG), then process them and review results on this page.</p>
-        </div>
-      </div>
-    </section>
-
     <section class="panel">
       <div class="panel-head"><div><h2 class="panel-title">Configuration</h2></div></div>
       <div class="panel-body">

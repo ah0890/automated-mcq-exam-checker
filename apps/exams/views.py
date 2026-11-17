@@ -8,6 +8,8 @@ from django.views.decorators.http import require_POST
 from apps.core.files import data_path
 from apps.core.previews import image_file_response
 
+from apps.papers.services import paper_stats
+
 from . import services
 from .forms import AssignKeyForm, ExaminationForm, SheetLayoutForm
 from .models import Examination, SheetLayout
@@ -56,8 +58,10 @@ def exam_detail(request, uid):
     exam = get_object_or_404(
         Examination.objects.select_related("sheet_layout", "answer_key_version__key", "key_assigned_by"), uid=uid)
     key_form = AssignKeyForm(exam=exam)
+    papers = exam.papers.select_related("source").order_by("sequence")
     return render(request, "exams/detail.html", {
         "exam": exam, "key_form": key_form, "has_compatible_keys": key_form.fields["version"].queryset.exists(),
+        "papers": papers, "paper_stats": paper_stats(exam),
     })
 
 

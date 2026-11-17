@@ -1,9 +1,11 @@
 from django.conf import settings
+from django.db.models import Count, Q
 from django.shortcuts import render
 from django.utils import timezone
 
 from apps.answerkeys.models import AnswerKey, AnswerKeyVersion
 from apps.exams.models import Examination, SheetLayout
+from apps.papers.models import Paper
 from apps.students.models import Student
 
 from .system_checks import run_system_checks
@@ -33,7 +35,8 @@ def dashboard(request):
     healthy = all(c.ok for c in checks)
     now = timezone.localtime()
 
-    exams = Examination.objects.select_related("answer_key_version__key", "sheet_layout")
+    exams = Examination.objects.select_related("answer_key_version__key", "sheet_layout").annotate(
+        paper_count=Count("papers", filter=~Q(papers__status="excluded")))
     counts = {
         "exams": exams.count(),
         "layouts": SheetLayout.objects.count(),
@@ -42,7 +45,12 @@ def dashboard(request):
         "draft_keys": AnswerKey.objects.filter(versions__status=AnswerKeyVersion.Status.DRAFT).distinct().count(),
         "students": Student.objects.filter(is_active=True).count(),
         "ready": exams.filter(answer_key_version__isnull=False, status=Examination.Status.ACTIVE).count(),
+        "papers": Paper.objects.exclude(status=Paper.Status.EXCLUDED).count(),
     }
+    upload_exams = list(exams.filter(status=Examination.Status.ACTIVE))
+    # Default to the most recent examination that has a key but no papers yet.
+    default_exam = (next((e for e in upload_exams if e.answer_key_version_id and not e.paper_count), None)
+                    or next((e for e in upload_exams if e.answer_key_version_id), None))
 
     # Every item reflects real application state.
     setup = [
@@ -57,6 +65,8 @@ def dashboard(request):
          "desc": "Name, class, question count and marking rules.", "url": "exams:create"},
         {"title": "Attach the key to the examination", "state": "done" if counts["ready"] else "todo",
          "desc": "The examination is then ready for student papers."},
+        {"title": "Upload the class's answer sheets", "state": "done" if counts["papers"] else "todo",
+         "desc": "PDF, JPG or PNG — the whole class at once.", "url": "papers:upload_page"},
         {"title": "Import the class list", "state": "done" if counts["students"] else "optional",
          "desc": "Optional — shows student names next to roll numbers.", "url": "students:import"},
     ]
@@ -74,7 +84,8 @@ def dashboard(request):
         "setup_total": len(required),
         "counts": counts,
         "recent_exams": exams[:6],
-        "ready_exams": exams.filter(answer_key_version__isnull=False, status=Examination.Status.ACTIVE)[:5],
+        "upload_exams": upload_exams,
+        "default_upload_exam": str(default_exam.uid) if default_exam else "",
         "data_dir": settings.DATA_DIR,
     })
 
