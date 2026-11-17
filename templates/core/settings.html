@@ -1,18 +1,42 @@
 {% extends "base.html" %}
-{% block title %}Settings · MCQ Examination Checker{% endblock %}
-{% block breadcrumb %}Settings{% endblock %}
+{% block title %}Settings{% endblock %}
+{% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Settings</span>{% endblock %}
 {% block content %}
-<h1 class="h3 page-title mb-4">Settings</h1>
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">System</div>
+    <h1 class="page-title">Settings</h1>
+    <p class="page-subtitle">Application configuration and the health of the components used to read answer sheets.</p>
+  </div>
+  {% if user.is_staff %}
+    <a class="btn btn-light" href="{% url 'admin:index' %}"><i class="bi bi-people"></i> Manage user accounts</a>
+  {% endif %}
+</header>
+
 <div class="row g-4">
-  <div class="col-lg-6">{% include "core/_system_status.html" %}</div>
-  <div class="col-lg-6">
-    <div class="card"><div class="card-header">Configuration</div>
-      <div class="card-body small text-secondary">
-        Configuration is read from environment variables or a local <code>.env</code> file
-        (see <code>.env.example</code>). User accounts are managed in the
-        <a href="{% url 'admin:index' %}">administration area</a>.
+  <div class="col-xl-6">{% include "core/_system_status.html" %}</div>
+  <div class="col-xl-6">
+    <section class="panel mb-4">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">Configuration</h2>
+          <p class="panel-sub">Read from environment variables or the local <code>.env</code> file</p>
+        </div>
       </div>
-    </div>
+      <div class="panel-body">
+        <dl class="kv">
+          <dt>Data directory</dt><dd class="mono">{{ data_dir }}</dd>
+          <dt>Database</dt><dd class="mono">{{ database }}</dd>
+          <dt>Tesseract</dt><dd class="mono">{{ tesseract }}</dd>
+          <dt>Max upload size</dt><dd>{{ max_upload_mb }} MB per file</dd>
+          <dt>Time zone</dt><dd>{{ time_zone }}</dd>
+          <dt>Session length</dt><dd>{{ session_hours }} hours, ends when the browser closes</dd>
+        </dl>
+      </div>
+      <div class="panel-foot small text-muted">
+        <i class="bi bi-info-circle me-1"></i>To change a value, edit <code>.env</code> (see <code>.env.example</code>) and restart the application.
+      </div>
+    </section>
   </div>
 </div>
 {% endblock %}

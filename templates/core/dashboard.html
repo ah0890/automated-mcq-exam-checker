@@ -1,27 +1,115 @@
 {% extends "base.html" %}
-{% block title %}Dashboard · MCQ Examination Checker{% endblock %}
-{% block breadcrumb %}Dashboard{% endblock %}
+{% block title %}Dashboard{% endblock %}
+{% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Dashboard</span>{% endblock %}
 {% block content %}
-<h1 class="h3 page-title mb-4">Dashboard</h1>
-<div class="row g-4">
-  <div class="col-lg-7">
-    <div class="card">
-      <div class="card-header">Examination workflow</div>
-      <div class="card-body">
-        <p class="text-secondary small">Results are produced only from uploaded papers and a verified answer key. No examinations have been created yet.</p>
-        <div class="vstack gap-2">
-          <div class="workflow-step"><span class="num">1</span>Create examination</div>
-          <div class="workflow-step"><span class="num">2</span>Upload answer key</div>
-          <div class="workflow-step"><span class="num">3</span>Verify answer key</div>
-          <div class="workflow-step"><span class="num">4</span>Upload student papers</div>
-          <div class="workflow-step"><span class="num">5</span>Process papers</div>
-          <div class="workflow-step"><span class="num">6</span>Review uncertain answers</div>
-          <div class="workflow-step"><span class="num">7</span>Finalize results</div>
-          <div class="workflow-step"><span class="num">8</span>View class results</div>
-        </div>
-      </div>
+
+<section class="hero mb-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-4">
+    <div>
+      <div class="hero-date"><i class="bi bi-calendar3 me-1"></i>{{ today|date:"l, j F Y" }}</div>
+      <h1 class="hero-title">{{ greeting }}, {{ display_name }}</h1>
+      <p class="hero-text">Every result here comes from the answer sheets you upload and an answer key you have verified. Nothing is marked until you approve it.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" data-bs-title="Available from Milestone 2">
+        <button class="btn btn-hero btn-lg" type="button" disabled><i class="bi bi-plus-lg"></i> New examination</button>
+      </span>
+      <a class="btn btn-ghost btn-lg" href="{% url 'core:settings' %}"><i class="bi bi-sliders"></i> Settings</a>
     </div>
   </div>
-  <div class="col-lg-5">{% include "core/_system_status.html" %}</div>
+</section>
+
+<section class="panel mb-4">
+  <div class="panel-head">
+    <div>
+      <h2 class="panel-title">Examination workflow</h2>
+      <p class="panel-sub">From answer key to class results in eight steps</p>
+    </div>
+    <span class="pill pill-neutral">No examinations yet</span>
+  </div>
+  <div class="panel-body py-4">
+    <ol class="stepper list-unstyled m-0">
+      {% for label, icon in workflow %}
+        <li class="step{% if forloop.first %} is-current{% endif %}">
+          <span class="step-dot"><i class="bi bi-{{ icon }}"></i></span>
+          <span class="step-text">
+            <span class="step-label d-block">{{ label }}</span>
+            <span class="step-meta d-block">{% if forloop.first %}Start here{% else %}Step {{ forloop.counter }}{% endif %}</span>
+          </span>
+        </li>
+      {% endfor %}
+    </ol>
+  </div>
+</section>
+
+<div class="row g-4">
+  <div class="col-xl-7">
+    <section class="panel h-100">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">Getting started</h2>
+          <p class="panel-sub">{{ setup_done }} of {{ setup|length }} complete</p>
+        </div>
+        <div class="progress" style="width:140px;height:6px" role="progressbar" aria-label="Setup progress"
+             aria-valuenow="{{ setup_done }}" aria-valuemin="0" aria-valuemax="{{ setup|length }}">
+          <div class="progress-bar" style="width:{% widthratio setup_done setup|length 100 %}%"></div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <ul class="checklist">
+          {% for item in setup %}
+            <li class="{{ item.state }}">
+              <span class="check-ic"><i class="bi {% if item.state == 'fail' %}bi-exclamation-lg{% else %}bi-check-lg{% endif %}"></i></span>
+              <div class="flex-grow-1">
+                <div class="check-title">{{ item.title }}</div>
+                <div class="check-desc">{{ item.desc }}</div>
+              </div>
+              {% if item.milestone %}<span class="pill pill-neutral pill-plain">Milestone {{ item.milestone }}</span>{% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+  </div>
+  <div class="col-xl-5">{% include "core/_system_status.html" %}</div>
+</div>
+
+<div class="row g-4 mt-0">
+  <div class="col-xl-7">
+    <section class="panel h-100">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">How answer sheets are read</h2>
+          <p class="panel-sub">Recognition runs on this computer</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="row g-4">
+          <div class="col-md-6"><div class="feature"><span class="feature-ic"><i class="bi bi-bounding-box-circles"></i></span><div><div class="feature-title">Automatic alignment</div><p class="feature-text">Corner markers straighten tilted, rotated or phone-photographed pages.</p></div></div></div>
+          <div class="col-md-6"><div class="feature"><span class="feature-ic"><i class="bi bi-circle-half"></i></span><div><div class="feature-title">Bubble-by-bubble reading</div><p class="feature-text">Each bubble is compared with the blank sheet, so printed letters never count as marks.</p></div></div></div>
+          <div class="col-md-6"><div class="feature"><span class="feature-ic"><i class="bi bi-123"></i></span><div><div class="feature-title">Roll numbers from bubbles</div><p class="feature-text">Roll numbers are read from the filled digit grid, not handwriting.</p></div></div></div>
+          <div class="col-md-6"><div class="feature"><span class="feature-ic"><i class="bi bi-person-check"></i></span><div><div class="feature-title">You decide unclear marks</div><p class="feature-text">Faint, erased or double marks are flagged for review — never guessed.</p></div></div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="col-xl-5">
+    <section class="panel h-100">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">Data &amp; privacy</h2>
+          <p class="panel-sub">Where your examination records live</p>
+        </div>
+        <span class="pill pill-success">Local only</span>
+      </div>
+      <div class="panel-body">
+        <dl class="kv">
+          <dt>Storage</dt><dd class="mono">{{ data_dir }}</dd>
+          <dt>Cloud services</dt><dd>None</dd>
+          <dt>Version control</dt><dd>Papers, keys and results are excluded</dd>
+        </dl>
+      </div>
+    </section>
+  </div>
 </div>
 {% endblock %}

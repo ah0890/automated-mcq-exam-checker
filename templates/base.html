@@ -3,45 +3,107 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}MCQ Examination Checker{% endblock %}</title>
+  <meta name="color-scheme" content="light">
+  <title>{% block title %}MCQ Checker{% endblock %} · MCQ Examination Checker</title>
+  <link rel="preload" href="{% static 'vendor/inter/inter-latin-wght-normal.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   {% block head %}{% endblock %}
 </head>
 <body>
-<div class="d-flex app-shell">
-  <nav class="sidebar d-flex flex-column" aria-label="Main navigation">
-    <div class="brand"><i class="bi bi-ui-checks-grid me-1"></i> MCQ Exam Checker<small>Examination processing &amp; results</small></div>
-    <div class="nav flex-column py-2">
-      {% for item in nav_items %}
-        {% if item.url %}
-          <a class="nav-link{% if item.active %} active{% endif %}" href="{{ item.url }}"><i class="bi bi-{{ item.icon }}"></i>{{ item.label }}</a>
-        {% else %}
-          <span class="nav-link disabled" title="Delivered in Milestone {{ item.milestone }}"><i class="bi bi-{{ item.icon }}"></i>{{ item.label }}<span class="badge badge-ms">M{{ item.milestone }}</span></span>
-        {% endif %}
-      {% endfor %}
-    </div>
-  </nav>
-  <div class="flex-grow-1 d-flex flex-column min-w-0">
-    <header class="topbar d-flex align-items-center justify-content-between px-4 py-2">
-      <span class="text-secondary small">{% block breadcrumb %}{% endblock %}</span>
-      <div class="d-flex align-items-center gap-3">
-        <span class="small text-secondary"><i class="bi bi-person-circle"></i> {{ user.get_username }}</span>
-        <form method="post" action="{% url 'logout' %}" class="m-0">{% csrf_token %}<button class="btn btn-sm btn-outline-secondary">Sign out</button></form>
-      </div>
-    </header>
-    <main class="p-4">
-      {% for message in messages %}
-        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show" role="alert">
-          {{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div class="app">
+  <aside class="app-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="appSidebar" aria-label="Main navigation">
+    <a class="sb-brand" href="{% url 'core:dashboard' %}">
+      <span class="sb-logo"><i class="bi bi-ui-checks-grid"></i></span>
+      <span>
+        <span class="sb-brand-name d-block">MCQ Checker</span>
+        <span class="sb-brand-sub">Examination processing</span>
+      </span>
+      <button type="button" class="btn-close btn-close-white ms-auto d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#appSidebar" aria-label="Close"></button>
+    </a>
+
+    <nav class="sb-scroll">
+      {% for section in nav_sections %}
+        <div class="sb-section">
+          <div class="sb-section-title">{{ section.title }}</div>
+          {% for item in section.items %}
+            {% if item.url %}
+              <a class="sb-link{% if item.active %} active{% endif %}" href="{{ item.url }}"{% if item.active %} aria-current="page"{% endif %}>
+                <i class="bi bi-{{ item.icon }}"></i><span>{{ item.label }}</span>
+              </a>
+            {% else %}
+              <span class="sb-link is-soon" title="Available from Milestone {{ item.milestone }}" aria-disabled="true">
+                <i class="bi bi-{{ item.icon }}"></i><span>{{ item.label }}</span><span class="sb-soon">M{{ item.milestone }}</span>
+              </span>
+            {% endif %}
+          {% endfor %}
         </div>
       {% endfor %}
+    </nav>
+
+    <div class="sb-footer">
+      <div class="sb-user">
+        <span class="avatar">{{ user_initials }}</span>
+        <span class="min-w-0">
+          <span class="sb-user-name d-block text-truncate">{{ user.get_full_name|default:user.get_username }}</span>
+          <span class="sb-user-role">{% if user.is_superuser %}Administrator{% else %}Teacher{% endif %}</span>
+        </span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="app-main">
+    <header class="app-topbar">
+      <button class="icon-btn d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#appSidebar" aria-controls="appSidebar" aria-label="Open navigation">
+        <i class="bi bi-list"></i>
+      </button>
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="{% url 'core:dashboard' %}" aria-label="Home"><i class="bi bi-house-door"></i></a>
+        {% block crumbs %}{% endblock %}
+      </nav>
+      <div class="topbar-actions">
+        <div class="dropdown">
+          <button class="user-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="avatar">{{ user_initials }}</span>
+            <span class="d-none d-sm-inline">{{ user.get_username }}</span>
+            <i class="bi bi-chevron-down small text-muted"></i>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li class="dropdown-header">Signed in as <strong class="text-body">{{ user.get_username }}</strong></li>
+            <li><a class="dropdown-item" href="{% url 'core:settings' %}"><i class="bi bi-sliders"></i> Settings</a></li>
+            {% if user.is_staff %}<li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-shield-lock"></i> Administration</a></li>{% endif %}
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <form method="post" action="{% url 'logout' %}" class="m-0">{% csrf_token %}
+                <button class="dropdown-item" type="submit"><i class="bi bi-box-arrow-right"></i> Sign out</button>
+              </form>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-content">
+      {% if messages %}
+        <div class="flash-stack">
+          {% for message in messages %}
+            <div class="flash {{ message.tags|default:'info' }} alert fade show m-0" role="alert">
+              <i class="ic bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'error' %}bi-x-octagon-fill{% elif message.tags == 'warning' %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+              <div>{{ message }}</div>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>
 </div>
 <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
+<script>
+  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) { new bootstrap.Tooltip(el); });
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

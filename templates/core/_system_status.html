@@ -1,11 +1,25 @@
-<div class="card">
-  <div class="card-header">System status</div>
-  <ul class="list-group list-group-flush">
-    {% for c in checks %}
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <span><i class="bi {% if c.ok %}bi-check-circle-fill text-success{% else %}bi-x-circle-fill text-danger{% endif %} me-2"></i>{{ c.name }}</span>
-        <span class="small text-secondary text-truncate ms-3" style="max-width:60%">{{ c.detail }}</span>
-      </li>
-    {% endfor %}
-  </ul>
+<div class="panel h-100">
+  <div class="panel-head">
+    <div>
+      <h2 class="panel-title">System health</h2>
+      <p class="panel-sub">Components required for processing</p>
+    </div>
+    {% if healthy %}<span class="pill pill-success">Operational</span>{% else %}<span class="pill pill-danger">Action needed</span>{% endif %}
+  </div>
+  <div class="panel-body">
+    <ul class="status-list">
+      {% for c in checks %}
+        <li>
+          <span class="status-name">
+            <span class="ic"><i class="bi {% if c.name == 'Tesseract OCR' %}bi-fonts{% elif c.name == 'Data directory' %}bi-hdd{% elif c.name == 'OpenCV' %}bi-eye{% elif c.name == 'PyMuPDF' %}bi-file-earmark-pdf{% elif c.name == 'OpenPyXL' %}bi-file-earmark-spreadsheet{% elif c.name == 'ReportLab' %}bi-printer{% else %}bi-box{% endif %}"></i></span>
+            {{ c.name }}
+          </span>
+          <span class="d-flex align-items-center gap-2 min-w-0">
+            <span class="status-detail mono" title="{{ c.hint|default:c.detail }}">{{ c.detail }}</span>
+            {% if c.ok %}<span class="pill pill-success">Ready</span>{% else %}<span class="pill pill-danger">Missing</span>{% endif %}
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
 </div>

@@ -27,7 +27,7 @@ class SignedInPages(TestCase):
         self.assertEqual(response.status_code, 200)
         for label in ["Answer Key Library", "Upload Student Papers", "Processing Center", "Manual Verification"]:
             self.assertContains(response, label)
-        self.assertContains(response, "System status")
+        self.assertContains(response, "System health")
 
     def test_settings_page(self):
         self.assertEqual(self.client.get(reverse("core:settings")).status_code, 200)
