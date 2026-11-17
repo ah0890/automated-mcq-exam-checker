@@ -1,0 +1,28 @@
+:root {
+  --mcq-navy: #13294b;
+  --mcq-navy-2: #1d3a66;
+  --mcq-blue: #2563eb;
+  --mcq-bg: #f4f6fa;
+  --mcq-border: #dde3ec;
+}
+body { background: var(--mcq-bg); color: #1f2937; font-size: .95rem; }
+.app-shell { min-height: 100vh; }
+.min-w-0 { min-width: 0; }
+.sidebar { width: 250px; background: var(--mcq-navy); flex-shrink: 0; }
+.sidebar .brand { color: #fff; font-weight: 600; letter-spacing: .2px; padding: 1.1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,.08); }
+.sidebar .brand small { display: block; font-weight: 400; color: #9fb3d1; font-size: .75rem; }
+.sidebar .nav-link { color: #c8d4e6; padding: .55rem 1.25rem; border-left: 3px solid transparent; display: flex; align-items: center; gap: .65rem; }
+.sidebar .nav-link:hover { color: #fff; background: var(--mcq-navy-2); }
+.sidebar .nav-link.active { color: #fff; background: var(--mcq-navy-2); border-left-color: #60a5fa; }
+.sidebar .nav-link.disabled { color: #6b7f9c; }
+.sidebar .badge-ms { margin-left: auto; font-size: .65rem; background: rgba(255,255,255,.08); color: #8ea3c2; }
+.topbar { background: #fff; border-bottom: 1px solid var(--mcq-border); }
+.card { border: 1px solid var(--mcq-border); box-shadow: 0 1px 2px rgba(16,24,40,.04); }
+.card-header { background: #fff; font-weight: 600; }
+.page-title { font-weight: 600; color: var(--mcq-navy); }
+.workflow-step { border-left: 3px solid var(--mcq-border); padding: .35rem 0 .35rem .9rem; }
+.workflow-step .num { display: inline-flex; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: var(--mcq-navy); color: #fff; align-items: center; justify-content: center; font-size: .8rem; margin-right: .5rem; }
+.btn-primary { background: var(--mcq-navy); border-color: var(--mcq-navy); }
+.btn-primary:hover { background: var(--mcq-navy-2); border-color: var(--mcq-navy-2); }
+@media (max-width: 991.98px) { .sidebar { width: 100%; } .app-shell { flex-direction: column; } }
+@media print { .sidebar, .topbar, .no-print { display: none !important; } body { background: #fff; } }

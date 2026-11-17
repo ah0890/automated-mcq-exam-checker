@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Settings · MCQ Examination Checker{% endblock %}
+{% block breadcrumb %}Settings{% endblock %}
+{% block content %}
+<h1 class="h3 page-title mb-4">Settings</h1>
+<div class="row g-4">
+  <div class="col-lg-6">{% include "core/_system_status.html" %}</div>
+  <div class="col-lg-6">
+    <div class="card"><div class="card-header">Configuration</div>
+      <div class="card-body small text-secondary">
+        Configuration is read from environment variables or a local <code>.env</code> file
+        (see <code>.env.example</code>). User accounts are managed in the
+        <a href="{% url 'admin:index' %}">administration area</a>.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
