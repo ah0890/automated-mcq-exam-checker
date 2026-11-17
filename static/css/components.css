@@ -163,6 +163,32 @@
 .legend .l-unanswered::before { background: var(--canvas); border-color: var(--line); }
 .legend .l-multiple::before { background: var(--warning-bg); border-color: #fedf89; }
 
+/* ---------- Pass/fail segmented bar ---------- */
+.seg-bar { display: flex; gap: 2px; height: 28px; border-radius: 4px; overflow: visible; }
+.seg-bar .seg { display: grid; place-items: center; min-width: 28px; border-radius: 4px; color: #fff; font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.seg-pass { background: #2a78d6; }
+.seg-fail { background: #d03b3b; }
+.seg-pending { background: #a3a29b; }
+.seg-legend { list-style: none; padding: 0; margin: .9rem 0 0; display: flex; flex-wrap: wrap; gap: 1.1rem; font-size: .8rem; color: var(--ink-2); }
+.seg-legend li { display: flex; align-items: center; gap: .4rem; }
+.seg-legend .sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.seg-legend i { color: var(--muted); }
+
+/* ---------- Sortable tables ---------- */
+.table-x th.sortable { cursor: pointer; user-select: none; }
+.table-x th.sortable::after { content: "↕"; margin-left: .3rem; opacity: .35; font-size: .7rem; }
+.table-x th.sortable.sorted[aria-sort="ascending"]::after { content: "↑"; opacity: .9; }
+.table-x th.sortable.sorted[aria-sort="descending"]::after { content: "↓"; opacity: .9; }
+.table-x.compact thead th, .table-x.compact tbody td { padding-left: .8rem; padding-right: .8rem; }
+.table-x.compact thead th:first-child, .table-x.compact tbody td:first-child { padding-left: 1.35rem; }
+.btn-group .btn.active { background: var(--navy-800); border-color: var(--navy-800); color: #fff; }
+.q-tag { display: inline-block; font-size: .7rem; font-weight: 600; padding: .1rem .45rem; border-radius: 999px; }
+.q-hard { background: var(--danger-bg); color: var(--danger-ink); }
+.q-easy { background: var(--success-bg); color: var(--success-ink); }
+.opt-bars { display: flex; gap: 3px; align-items: flex-end; height: 26px; }
+.opt-bars span { width: 14px; background: #cde2fb; border-radius: 3px 3px 0 0; position: relative; }
+.opt-bars span.is-key { background: #2a78d6; }
+
 /* ---------- Loading overlay ---------- */
 .loading-overlay { position: fixed; inset: 0; background: rgba(245, 247, 251, .88); backdrop-filter: blur(3px); z-index: 2000; display: none; align-items: center; justify-content: center; flex-direction: column; gap: .75rem; text-align: center; padding: 1rem; }
 .loading-overlay.show { display: flex; }

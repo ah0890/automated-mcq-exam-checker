@@ -7,9 +7,9 @@ and performance analytics.
 All processing runs locally. No paid services or external AI APIs are used,
 and examination data never leaves the machine.
 
-> **Status:** Milestones 1–5 are complete: sheet layouts, examinations,
-> the Answer Key Library, class lists, paper upload, processing, manual
-> verification and marking. The class results dashboard and reports follow — see
+> **Status:** Milestones 1–6 are complete: the full workflow from sheet
+> layout and answer key to verified, marked and finalized class results
+> with analytics. Excel/PDF reports and backups follow — see
 > [CHANGELOG.md](CHANGELOG.md) and [context.md](context.md).
 
 ## Features available now
@@ -32,6 +32,9 @@ and examination data never leaves the machine.
 - **Marking** — exact decimal marking against the verified key with negative
   marking, multiple-mark policy, pass/fail and competition ranking; key or
   rule changes require explicit re-evaluation and earlier results are kept.
+- **Class results & analytics** — rank table with search, sorting and
+  filters; distribution, pass/fail, student and question charts; question
+  analysis; finalizing locks the examination.
 
 ## How it works
 

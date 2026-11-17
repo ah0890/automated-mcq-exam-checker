@@ -1,5 +1,27 @@
 # Changelog
 
+## Milestone 6 — Class results, analytics and finalization (2026-11-17)
+
+### Added
+
+- **Class Results** per examination: students, papers uploaded, evaluated,
+  class average (marks and %), highest, lowest, passed, failed and pending
+  verification; rank table (competition ranking) with roll number, student
+  name from the class list, correct, incorrect, unanswered, marks,
+  percentage and status; search by roll number or name, sorting, and
+  pass / fail / pending filters.
+- Charts (Chart.js, colour-blind-safe palette validated): pass/fail split,
+  marks distribution, student performance with pass-mark line, question-wise
+  accuracy, and average by subject across examinations; table views.
+- **Question Analysis**: official answer, correct / incorrect / unanswered /
+  multiple counts, % correct, most frequently chosen wrong option, option
+  distribution, and the most difficult, high-error and well-answered
+  questions.
+- **Finalize results** once everything is verified and marked; locks the
+  examination. Administrators can reopen with a recorded reason.
+- Dashboard: latest results and papers-to-review widgets.
+- 8 new tests (126 total).
+
 ## Milestone 5 — Evaluation engine (2026-11-17)
 
 ### Added

@@ -18,7 +18,14 @@
   </div>
 </header>
 
-{% if exam.stage == "needs_key" %}
+{% if exam.is_finalized %}
+  <div class="next-action done mb-4">
+    <span class="na-ic"><i class="bi bi-lock-fill"></i></span>
+    <div class="flex-grow-1"><div class="na-title">Results finalized</div>
+      <div class="na-text">Finalized {{ exam.finalized_at|date:"j M Y, H:i" }}{% if exam.finalized_by %} by {{ exam.finalized_by.get_username }}{% endif %}. Papers, answers, the key and marking rules are locked.</div></div>
+    <a class="btn btn-primary" href="{% url 'results:class' exam.uid %}">Class results</a>
+  </div>
+{% elif exam.stage == "needs_key" %}
   <div class="next-action mb-4">
     <span class="na-ic"><i class="bi bi-key"></i></span>
     <div class="flex-grow-1"><div class="na-title">Next: attach the verified answer key</div>
@@ -52,8 +59,8 @@
   <div class="next-action done mb-4">
     <span class="na-ic"><i class="bi bi-check-lg"></i></span>
     <div class="flex-grow-1"><div class="na-title">{% if paper_stats.processed == 1 %}The paper has been{% else %}All {{ paper_stats.processed }} papers have been{% endif %} read, verified{% if results.evaluated and not results.stale %} and marked{% endif %}</div>
-      <div class="na-text">{% if results.stale %}Some results are out of date — re-evaluate below.{% elif results.evaluated %}Class average {{ results.average|floatformat:"-2" }} of {{ results.max_marks|floatformat:"-2" }} · {{ results.passed }} passed · {{ results.failed }} failed.{% else %}Evaluate the papers below.{% endif %}</div></div>
-    <a class="btn btn-light" href="#results">View results</a>
+      <div class="na-text">{% if results.stale %}Some results are out of date — re-evaluate below.{% elif results.evaluated %}Class average {{ results.average|floatformat:"-2" }} of {{ results.max_marks|floatformat:"-2" }} · {{ results.passed }} passed · {{ results.failed }} failed. Check the class results, then finalize.{% else %}Evaluate the papers below.{% endif %}</div></div>
+    <a class="btn btn-primary" href="{% url 'results:class' exam.uid %}">Class results</a>
   </div>
   {% endif %}
 {% endif %}
@@ -127,7 +134,11 @@
         <div class="col-6 col-lg-2"><div class="stat-label">Failed</div><div class="stat-value text-danger">{{ results.failed }}</div></div>
       </div>
       {% if results.pending %}<div class="small text-muted mt-3"><i class="bi bi-hourglass-split me-1"></i>{{ results.pending }} paper{{ results.pending|pluralize }} not yet marked (awaiting processing or review).</div>{% endif %}
-      <div class="small text-muted mt-2"><i class="bi bi-bar-chart me-1"></i>The full class results dashboard, question analysis and exports arrive in Milestones 6 and 7.</div>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <a class="btn btn-primary btn-sm" href="{% url 'results:class' exam.uid %}"><i class="bi bi-trophy"></i> Class results</a>
+        <a class="btn btn-light btn-sm" href="{% url 'results:questions' exam.uid %}"><i class="bi bi-bar-chart-line"></i> Question analysis</a>
+        {% if not exam.is_finalized %}<a class="btn btn-light btn-sm" href="{% url 'results:class' exam.uid %}#finalize"><i class="bi bi-lock"></i> Finalize</a>{% endif %}
+      </div>
     {% else %}
       <div class="small text-muted"><i class="bi bi-info-circle me-1"></i>No papers have been marked yet.</div>
     {% endif %}

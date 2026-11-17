@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Class results · {{ exam.name }}{% endblock %}
+{% block crumbs %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{% url 'results:index' %}">Class Results</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">{{ exam.name }}</span>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">{{ exam.subject }} · {{ exam.class_section }} · {{ exam.exam_date|date:"j F Y" }}</div>
+    <h1 class="page-title">{{ exam.name }}</h1>
+    <p class="page-subtitle">Marked against “{{ exam.answer_key_version.key.title }}” v{{ exam.answer_key_version.number }} · {{ exam.num_questions }} questions · maximum {{ exam.max_marks|floatformat:"-2" }} · pass mark {{ exam.pass_marks|floatformat:"-2" }} ({{ exam.passing_percentage|floatformat:"-2" }}%)</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap align-items-center">
+    {% if exam.is_finalized %}<span class="pill pill-success"><i class="bi bi-lock-fill"></i> Finalized</span>{% else %}<span class="pill pill-warning">Provisional</span>{% endif %}
+    <a class="btn btn-light" href="{% url 'results:questions' exam.uid %}"><i class="bi bi-bar-chart-line"></i> Question analysis</a>
+    <a class="btn btn-light" href="{{ exam.get_absolute_url }}"><i class="bi bi-journal-text"></i> Examination</a>
+  </div>
+</header>
+
+{% if stale %}
+  <div class="flash warning mb-4"><i class="ic bi bi-exclamation-triangle-fill"></i>
+    <div><strong>{{ stale }} result{{ stale|pluralize }} out of date</strong> and excluded from these statistics until the examination is re-evaluated.</div>
+    {% if not exam.is_finalized %}<form method="post" action="{% url 'results:evaluate' exam.uid %}" class="ms-auto">{% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-primary btn-sm">Re-evaluate</button></form>{% endif %}
+  </div>
+{% endif %}
+
+<!-- Overall statistics -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-xl-2"><div class="panel stat h-100"><div class="stat-label"><i class="bi bi-people"></i> Students</div><div class="stat-value">{{ stats.students }}</div><div class="stat-foot">{{ stats.uploaded }} paper{{ stats.uploaded|pluralize }} uploaded</div></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="panel stat h-100"><div class="stat-label"><i class="bi bi-check2-all"></i> Evaluated</div><div class="stat-value">{{ stats.evaluated }}</div><div class="stat-foot">{% if stats.pending %}{{ stats.pending }} pending{% else %}All papers{% endif %}</div></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="panel stat h-100"><div class="stat-label"><i class="bi bi-calculator"></i> Class average</div><div class="stat-value">{% if stats.average is not None %}{{ stats.average|floatformat:"-2" }}{% else %}—{% endif %}</div><div class="stat-foot">{% if stats.average_pct is not None %}{{ stats.average_pct|floatformat:"-2" }}% of {{ stats.max_marks|floatformat:"-2" }}{% else %}No results yet{% endif %}</div></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="panel stat h-100"><div class="stat-label"><i class="bi bi-arrow-up"></i> Highest</div><div class="stat-value">{% if stats.highest is not None %}{{ stats.highest|floatformat:"-2" }}{% else %}—{% endif %}</div><div class="stat-foot">Lowest {% if stats.lowest is not None %}{{ stats.lowest|floatformat:"-2" }}{% else %}—{% endif %}</div></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="panel stat h-100"><div class="stat-label"><i class="bi bi-patch-check"></i> Passed</div><div class="stat-value">{{ stats.passed }}</div><div class="stat-foot">{% if stats.pass_rate is not None %}{{ stats.pass_rate|floatformat:"-1" }}% pass rate{% else %}—{% endif %}</div></div></div>
+  <div class="col-6 col-md-4 col-xl-2"><div class="panel stat h-100"><div class="stat-label"><i class="bi bi-x-octagon"></i> Failed</div><div class="stat-value">{{ stats.failed }}</div><div class="stat-foot">{% if stats.needs_review %}{{ stats.needs_review }} awaiting verification{% else %}None awaiting verification{% endif %}</div></div></div>
+</div>
+
+{% if stats.evaluated %}
+<div class="row g-4 mb-4">
+  <div class="col-xl-5">
+    <section class="panel h-100">
+      <div class="panel-head"><div><h2 class="panel-title">Pass / fail</h2><p class="panel-sub">{{ stats.students }} student{{ stats.students|pluralize }}</p></div></div>
+      <div class="panel-body">
+        <div class="seg-bar" role="img" aria-label="Passed {{ stats.passed }}, failed {{ stats.failed }}, pending {{ stats.pending }}">
+          {% if stats.passed %}<div class="seg seg-pass" style="flex:{{ stats.passed }}" title="Passed: {{ stats.passed }}">{{ stats.passed }}</div>{% endif %}
+          {% if stats.failed %}<div class="seg seg-fail" style="flex:{{ stats.failed }}" title="Failed: {{ stats.failed }}">{{ stats.failed }}</div>{% endif %}
+          {% if stats.pending %}<div class="seg seg-pending" style="flex:{{ stats.pending }}" title="Pending: {{ stats.pending }}">{{ stats.pending }}</div>{% endif %}
+        </div>
+        <ul class="seg-legend">
+          <li><span class="sw seg-pass"></span><i class="bi bi-check-circle"></i> Passed <strong>{{ stats.passed }}</strong></li>
+          <li><span class="sw seg-fail"></span><i class="bi bi-x-circle"></i> Failed <strong>{{ stats.failed }}</strong></li>
+          <li><span class="sw seg-pending"></span><i class="bi bi-hourglass-split"></i> Pending <strong>{{ stats.pending }}</strong></li>
+        </ul>
+        <dl class="kv mt-4">
+          <dt>Pass rate</dt><dd>{{ stats.pass_rate|floatformat:"-1" }}% of evaluated papers</dd>
+          <dt>Pass mark</dt><dd>{{ exam.pass_marks|floatformat:"-2" }} of {{ exam.max_marks|floatformat:"-2" }} ({{ exam.passing_percentage|floatformat:"-2" }}%)</dd>
+          <dt>Class average</dt><dd>{{ stats.average|floatformat:"-2" }} ({{ stats.average_pct|floatformat:"-2" }}%)</dd>
+          <dt>Range</dt><dd>{{ stats.lowest|floatformat:"-2" }} – {{ stats.highest|floatformat:"-2" }}</dd>
+        </dl>
+      </div>
+    </section>
+  </div>
+  <div class="col-xl-7">
+    <section class="panel h-100">
+      <div class="panel-head"><div><h2 class="panel-title">Marks distribution</h2><p class="panel-sub">Students per percentage band</p></div>
+        <button class="btn btn-light btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#distTable">Table</button></div>
+      <div class="panel-body">
+        <div style="height:220px"><canvas id="distChart" aria-label="Marks distribution chart" role="img"></canvas></div>
+        <div class="collapse mt-3" id="distTable"><table class="table-x"><thead><tr><th>Band</th><th>Students</th></tr></thead>
+          <tbody>{% for b in chart.distribution %}<tr><td>{{ b.label }}%</td><td class="tabular">{{ b.count }}</td></tr>{% endfor %}</tbody></table></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<section class="panel mb-4">
+  <div class="panel-head"><div><h2 class="panel-title">Student performance</h2><p class="panel-sub">Marks by student, highest first — dashed line is the pass mark</p></div>
+    <ul class="seg-legend m-0"><li><span class="sw seg-pass"></span>Passed</li><li><span class="sw seg-fail"></span>Failed</li></ul></div>
+  <div class="panel-body"><div style="height:200px"><canvas id="studentChart" aria-label="Student marks comparison" role="img"></canvas></div></div>
+</section>
+{% endif %}
+
+<!-- Class result table -->
+<section class="panel mb-4" data-smart-table>
+  <div class="panel-head"><div><h2 class="panel-title">Class result</h2><p class="panel-sub">Competition ranking: equal marks share a rank</p></div>
+    <span class="small text-muted tabular" data-table-count></span></div>
+  <div class="toolbar">
+    <div class="input-icon"><i class="bi bi-search"></i><input class="form-control" type="search" placeholder="Search roll number or name" data-table-search aria-label="Search roll number or name"></div>
+    <div class="btn-group" role="group" aria-label="Filter">
+      <button class="btn btn-light btn-sm active" type="button" data-table-filter="all" aria-pressed="true">All</button>
+      <button class="btn btn-light btn-sm" type="button" data-table-filter="pass" aria-pressed="false">Passed</button>
+      <button class="btn btn-light btn-sm" type="button" data-table-filter="fail" aria-pressed="false">Failed</button>
+      <button class="btn btn-light btn-sm" type="button" data-table-filter="pending" aria-pressed="false">Pending</button>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table-x compact">
+      <thead><tr>
+        <th data-sort="0" data-dir="desc" class="sortable">Rank</th><th>Roll no.</th><th>Student name</th>
+        <th data-sort="3" data-dir="asc" class="sortable">Correct</th><th data-sort="4" data-dir="asc" class="sortable">Incorrect</th><th data-sort="5" data-dir="asc" class="sortable">Unanswered</th>
+        <th data-sort="6" data-dir="asc" class="sortable">Marks</th><th data-sort="7" data-dir="asc" class="sortable">Percentage</th><th>Status</th><th></th>
+      </tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr data-search="{{ row.roll|lower }} {{ row.name|lower }} paper {{ row.paper.sequence }}" data-filter="{{ row.status }}">
+          <td class="tabular fw-bold" data-value="{% if row.rank %}{{ row.rank }}{% endif %}">{{ row.rank|default:"—" }}</td>
+          <td class="tabular nowrap">{{ row.roll|default:"—" }}</td>
+          <td>{% if row.name %}{{ row.name }}{% else %}<span class="text-muted small">{% if row.roll %}Not in class list{% else %}Paper {{ row.paper.sequence }}{% endif %}</span>{% endif %}</td>
+          {% if row.result %}
+            <td class="tabular" data-value="{{ row.result.correct }}">{{ row.result.correct }}</td>
+            <td class="tabular" data-value="{{ row.result.incorrect }}">{{ row.result.incorrect }}{% if row.result.multiple %} <span class="text-muted small" title="Multiple-marked answers">+{{ row.result.multiple }}×</span>{% endif %}</td>
+            <td class="tabular" data-value="{{ row.result.unanswered }}">{{ row.result.unanswered }}</td>
+            <td class="tabular fw-semibold" data-value="{{ row.result.obtained }}">{{ row.result.obtained|floatformat:"-2" }}</td>
+            <td class="tabular" data-value="{{ row.result.percentage }}">{{ row.result.percentage|floatformat:"-2" }}%</td>
+            <td>{% if row.result.passed %}<span class="pill pill-success">Pass</span>{% else %}<span class="pill pill-danger">Fail</span>{% endif %}</td>
+          {% else %}
+            <td data-value=""></td><td data-value=""></td><td data-value=""></td><td data-value="">—</td><td data-value="">—</td>
+            <td><span class="pill pill-warning" title="{{ row.pending_reason }}">Pending</span></td>
+          {% endif %}
+          <td class="text-end nowrap">
+            {% if row.paper.status == "needs_review" or row.paper.status == "failed" %}<a class="btn btn-primary btn-sm" href="{% url 'processing:review' row.paper.uid %}">Review</a>
+            {% else %}<a class="btn btn-light btn-sm" href="{{ row.paper.get_absolute_url }}">View</a>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div class="empty py-4" data-table-empty hidden><p class="m-0">No students match the search or filter.</p></div>
+  </div>
+</section>
+
+<!-- Finalize -->
+<section class="panel" id="finalize">
+  <div class="panel-head"><div><h2 class="panel-title">{% if exam.is_finalized %}Results finalized{% else %}Finalize results{% endif %}</h2>
+    <p class="panel-sub">{% if exam.is_finalized %}Finalized {{ exam.finalized_at|date:"j M Y, H:i" }}{% if exam.finalized_by %} by {{ exam.finalized_by.get_username }}{% endif %} — papers, answers, the key and marking rules are locked.{% else %}Locks the examination once every paper is read, verified and marked.{% endif %}</p></div></div>
+  <div class="panel-body">
+    {% if exam.is_finalized %}
+      {% if user.is_superuser %}
+        <form method="post" action="{% url 'results:reopen' exam.uid %}" class="d-flex flex-wrap gap-2 align-items-end">{% csrf_token %}
+          <div class="flex-grow-1" style="min-width:260px"><label class="form-label" for="reopen_note">Reason for reopening</label>
+            <input class="form-control" id="reopen_note" name="note" required maxlength="255" placeholder="e.g. Rescanned paper for roll 10023"></div>
+          <button class="btn btn-light" onclick="return confirm('Reopen these results? They become provisional again until finalized.');"><i class="bi bi-unlock"></i> Reopen results</button>
+        </form>
+      {% else %}<div class="small text-muted">Only an administrator can reopen finalized results.</div>{% endif %}
+    {% elif blockers %}
+      <ul class="checklist">{% for b in blockers %}<li class="fail"><span class="check-ic"><i class="bi bi-exclamation-lg"></i></span><div class="check-title">{{ b }}</div></li>{% endfor %}</ul>
+    {% else %}
+      <form method="post" action="{% url 'results:finalize' exam.uid %}" class="d-flex flex-wrap gap-2 align-items-end">{% csrf_token %}
+        <div class="flex-grow-1" style="min-width:260px"><label class="form-label" for="final_note">Note <span class="text-muted fw-normal">(optional)</span></label>
+          <input class="form-control" id="final_note" name="note" maxlength="255" placeholder="e.g. Checked by subject teacher"></div>
+        <button class="btn btn-primary" onclick="return confirm('Finalize these results? The examination will be locked.');"><i class="bi bi-lock"></i> Finalize results</button>
+      </form>
+    {% endif %}
+    {% if events %}
+      <div class="mt-4 small">
+        {% for e in events %}<div class="text-muted"><i class="bi {% if e.action == 'finalized' %}bi-lock{% else %}bi-unlock{% endif %} me-1"></i>{{ e.get_action_display }} {{ e.created_at|date:"j M Y, H:i" }}{% if e.user %} by {{ e.user.get_username }}{% endif %}{% if e.note %} — “{{ e.note }}”{% endif %}</div>{% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{{ chart.distribution|json_script:"chart-distribution" }}
+{{ chart|json_script:"chart-students" }}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/chartjs/chart.umd.js' %}"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script src="{% static 'js/table.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Question analysis · {{ exam.name }}{% endblock %}
+{% block crumbs %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{% url 'results:questions_index' %}">Question Analysis</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">{{ exam.name }}</span>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">{{ exam.subject }} · {{ exam.class_section }} · {{ exam.exam_date|date:"j F Y" }}</div>
+    <h1 class="page-title">Question analysis</h1>
+    <p class="page-subtitle">{{ exam.name }} — how the class answered each question, based on {{ students }} marked paper{{ students|pluralize }}.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-light" href="{% url 'results:class' exam.uid %}"><i class="bi bi-trophy"></i> Class results</a>
+    <a class="btn btn-light" href="{{ exam.get_absolute_url }}"><i class="bi bi-journal-text"></i> Examination</a>
+  </div>
+</header>
+
+{% if stale %}<div class="flash warning mb-4"><i class="ic bi bi-exclamation-triangle-fill"></i><div>{{ stale }} out-of-date result{{ stale|pluralize }} are not included. Re-evaluate the examination to include them.</div></div>{% endif %}
+
+{% if not students %}
+  <section class="panel"><div class="empty"><div class="empty-ic"><i class="bi bi-bar-chart-line"></i></div><h3>No marked papers yet</h3><p>Question analysis appears once papers have been processed, verified and marked.</p></div></section>
+{% else %}
+<section class="panel mb-4">
+  <div class="panel-head"><div><h2 class="panel-title">Accuracy by question</h2><p class="panel-sub">Percentage of students answering correctly — dashed line at 50%</p></div>
+    <button class="btn btn-light btn-sm" type="button" onclick="document.getElementById('qtable').scrollIntoView({behavior:'smooth'})">Table</button></div>
+  <div class="panel-body"><div style="height:260px"><canvas id="questionChart" aria-label="Percentage correct for each question" role="img"></canvas></div></div>
+</section>
+
+<div class="row g-4 mb-4">
+  <div class="col-lg-4">
+    <section class="panel h-100">
+      <div class="panel-head"><div><h2 class="panel-title">Most difficult</h2><p class="panel-sub">Lowest share of correct answers</p></div></div>
+      <ul class="list-unstyled m-0">
+        {% for s in summary.hardest %}
+          <li class="d-flex align-items-center gap-3 px-4 py-2 border-bottom"><span class="fw-bold tabular" style="width:44px">Q{{ s.q }}</span>
+            <div class="flex-grow-1 small">{{ s.correct_pct|floatformat:"-1" }}% correct{% if s.top_wrong %} · most chose <strong>{{ s.top_wrong }}</strong> ({{ s.top_wrong_count }}){% endif %}</div>
+            <span class="small text-muted">Key {{ s.key }}</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+  <div class="col-lg-4">
+    <section class="panel h-100">
+      <div class="panel-head"><div><h2 class="panel-title">High error rate</h2><p class="panel-sub">Half or more of the class answered incorrectly</p></div><span class="pill pill-danger pill-plain">{{ summary.high_error|length }}</span></div>
+      {% if summary.high_error %}
+        <div class="panel-body d-flex flex-wrap gap-2">{% for s in summary.high_error %}<span class="q-tag q-hard" title="{{ s.incorrect_pct }}% incorrect">Q{{ s.q }} · {{ s.incorrect_pct|floatformat:"-1" }}%</span>{% endfor %}</div>
+      {% else %}<div class="panel-body small text-muted">No question was answered incorrectly by half the class.</div>{% endif %}
+    </section>
+  </div>
+  <div class="col-lg-4">
+    <section class="panel h-100">
+      <div class="panel-head"><div><h2 class="panel-title">Answered well</h2><p class="panel-sub">80% or more answered correctly</p></div><span class="pill pill-success pill-plain">{{ summary.mostly_correct|length }}</span></div>
+      {% if summary.mostly_correct %}
+        <div class="panel-body d-flex flex-wrap gap-2">{% for s in summary.mostly_correct %}<span class="q-tag q-easy" title="{{ s.correct_pct }}% correct">Q{{ s.q }}</span>{% endfor %}</div>
+      {% else %}<div class="panel-body small text-muted">No question reached 80% correct.</div>{% endif %}
+    </section>
+  </div>
+</div>
+
+<section class="panel" id="qtable" data-smart-table>
+  <div class="panel-head"><div><h2 class="panel-title">All questions</h2><p class="panel-sub">Click a column to sort · option bars show how many chose each option (darker = official answer)</p></div><span class="small text-muted" data-table-count></span></div>
+  <div class="toolbar">
+    <div class="btn-group" role="group" aria-label="Filter">
+      <button class="btn btn-light btn-sm active" type="button" data-table-filter="all" aria-pressed="true">All</button>
+      <button class="btn btn-light btn-sm" type="button" data-table-filter="hard" aria-pressed="false">High error</button>
+      <button class="btn btn-light btn-sm" type="button" data-table-filter="easy" aria-pressed="false">Answered well</button>
+    </div>
+  </div>
+  <div class="table-responsive"><table class="table-x compact">
+    <thead><tr><th data-sort="0" data-dir="desc" class="sortable">Q</th><th>Key</th><th data-sort="2" data-dir="asc" class="sortable">Correct</th><th data-sort="3" data-dir="asc" class="sortable">Incorrect</th><th data-sort="4" data-dir="asc" class="sortable">Unanswered</th><th data-sort="5" data-dir="asc" class="sortable">Multiple</th><th data-sort="6" data-dir="asc" class="sortable">% correct</th><th>Most chosen wrong</th><th>Options</th></tr></thead>
+    <tbody>
+    {% for s in stats %}
+      <tr data-filter="{% if s.high_error %}hard{% elif s.mostly_correct %}easy{% else %}mid{% endif %}">
+        <td class="fw-bold tabular" data-value="{{ s.q }}">{{ s.q }}</td>
+        <td class="fw-bold" style="color:var(--navy-800)">{{ s.key }}</td>
+        <td class="tabular" data-value="{{ s.correct }}">{{ s.correct }}</td>
+        <td class="tabular" data-value="{{ s.incorrect }}">{{ s.incorrect }}</td>
+        <td class="tabular" data-value="{{ s.unanswered }}">{{ s.unanswered }}</td>
+        <td class="tabular" data-value="{{ s.multiple }}">{{ s.multiple }}</td>
+        <td class="tabular fw-semibold" data-value="{{ s.correct_pct }}">{{ s.correct_pct|floatformat:"-1" }}%{% if s.high_error %} <span class="q-tag q-hard">high error</span>{% endif %}</td>
+        <td>{% if s.top_wrong %}<strong>{{ s.top_wrong }}</strong> <span class="text-muted small">({{ s.top_wrong_count }})</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+        <td><div class="d-flex gap-2 align-items-end">{% for o in s.options %}<div class="text-center small"><div class="opt-bars"><span class="{% if o.is_key %}is-key{% endif %}" style="height:{% if s.students %}{% widthratio o.count s.students 26 %}{% else %}0{% endif %}px" title="{{ o.label }}: {{ o.count }}"></span></div><span class="text-muted" style="font-size:.7rem">{{ o.label }}</span></div>{% endfor %}</div></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{{ chart|json_script:"chart-questions" }}
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/chartjs/chart.umd.js' %}"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script src="{% static 'js/table.js' %}"></script>
+{% endblock %}

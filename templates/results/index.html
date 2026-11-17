@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if view == "questions" %}Question Analysis{% else %}Class Results{% endif %}{% endblock %}
+{% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">{% if view == "questions" %}Question Analysis{% else %}Class Results{% endif %}</span>{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Results</div>
+    <h1 class="page-title">{% if view == "questions" %}Question analysis{% else %}Class results{% endif %}</h1>
+    <p class="page-subtitle">{% if view == "questions" %}Choose an examination to see how the class answered each question.{% else %}Results for every examination with marked papers. Figures come only from saved results of verified papers.{% endif %}</p>
+  </div>
+</header>
+
+{% if rows %}
+<section class="panel mb-4">
+  <div class="table-responsive"><table class="table-x">
+    <thead><tr><th>Examination</th><th>Date</th><th>Students</th><th>Evaluated</th><th>Average</th><th>Pass rate</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for row in rows %}{% with e=row.exam s=row.stats %}
+      <tr>
+        <td><a class="cell-title" href="{% if view == 'questions' %}{% url 'results:questions' e.uid %}{% else %}{% url 'results:class' e.uid %}{% endif %}">{{ e.name }}</a><div class="cell-sub">{{ e.subject }} · {{ e.class_section }}</div></td>
+        <td class="tabular nowrap">{{ e.exam_date|date:"j M Y" }}</td>
+        <td class="tabular">{{ s.students }}</td>
+        <td class="tabular">{{ s.evaluated }}{% if s.pending %} <span class="text-muted small">({{ s.pending }} pending)</span>{% endif %}</td>
+        <td class="tabular">{% if s.average is not None %}{{ s.average|floatformat:"-2" }} <span class="text-muted small">/ {{ s.max_marks|floatformat:"-2" }}</span>{% else %}—{% endif %}</td>
+        <td class="tabular">{% if s.pass_rate is not None %}{{ s.pass_rate|floatformat:"-1" }}%{% else %}—{% endif %}</td>
+        <td>{% if e.is_finalized %}<span class="pill pill-success">Finalized</span>{% else %}<span class="pill pill-warning">Provisional</span>{% endif %}</td>
+        <td class="text-end nowrap">
+          <a class="btn btn-light btn-sm" href="{% url 'results:class' e.uid %}">Results</a>
+          <a class="btn btn-light btn-sm" href="{% url 'results:questions' e.uid %}">Questions</a>
+        </td>
+      </tr>
+    {% endwith %}{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+{% if subjects %}
+<section class="panel">
+  <div class="panel-head"><div><h2 class="panel-title">Performance by subject</h2><p class="panel-sub">Average percentage across all examinations in each subject</p></div></div>
+  <div class="panel-body"><div style="height:160px"><canvas id="subjectChart" aria-label="Average percentage by subject" role="img"></canvas></div>
+    <table class="table-x mt-3"><thead><tr><th>Subject</th><th>Results</th><th>Average</th></tr></thead>
+      <tbody>{% for s in subjects %}<tr><td>{{ s.subject }}</td><td class="tabular">{{ s.students }}</td><td class="tabular">{{ s.average_pct|floatformat:"-2" }}%</td></tr>{% endfor %}</tbody></table>
+  </div>
+</section>
+{{ subjects|json_script:"chart-subjects" }}
+{% endif %}
+{% else %}
+<section class="panel"><div class="empty">
+  <div class="empty-ic"><i class="bi bi-trophy"></i></div>
+  <h3>No results yet</h3>
+  <p>Results appear here once an examination's papers have been processed, verified and marked.</p>
+  <a class="btn btn-primary" href="{% url 'papers:upload_page' %}"><i class="bi bi-upload"></i> Upload papers</a>
+</div></section>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="{% static 'vendor/chartjs/chart.umd.js' %}"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+{% endblock %}

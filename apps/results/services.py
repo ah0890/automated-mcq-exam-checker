@@ -165,3 +165,71 @@ def summary(exam: Examination) -> dict:
         "lowest": min(obtained) if n else None,
         "max_marks": exam.max_marks,
     }
+
+
+# --- finalization ---------------------------------------------------------------------
+
+def finalize_blockers(exam: Examination) -> list[str]:
+    """Reasons the examination cannot be finalized yet (empty = ready)."""
+    blockers = []
+    if exam.is_finalized:
+        return ["The examination is already finalized."]
+    if not exam.answer_key_version_id:
+        blockers.append("No verified answer key is attached.")
+    active = Paper.objects.filter(exam=exam).exclude(status=Paper.Status.EXCLUDED)
+    if not active.exists():
+        blockers.append("No papers have been uploaded.")
+    waiting = active.filter(status__in=[Paper.Status.UPLOADED, Paper.Status.QUEUED, Paper.Status.PROCESSING]).count()
+    if waiting:
+        blockers.append(f"{waiting} paper{'s' if waiting != 1 else ''} not processed yet.")
+    review = active.filter(status=Paper.Status.NEEDS_REVIEW).count()
+    if review:
+        blockers.append(f"{review} paper{'s' if review != 1 else ''} still need review.")
+    failed = active.filter(status=Paper.Status.FAILED).count()
+    if failed:
+        blockers.append(f"{failed} paper{'s' if failed != 1 else ''} could not be read — rescan or exclude "
+                        f"{'them' if failed != 1 else 'it'}.")
+    s = summary(exam)
+    if s["stale"]:
+        blockers.append(f"{s['stale']} result{'s are' if s['stale'] != 1 else ' is'} out of date — re-evaluate.")
+    missing = active.filter(status=Paper.Status.PROCESSED, result__isnull=True).count()
+    if missing:
+        blockers.append(f"{missing} verified paper{'s have' if missing != 1 else ' has'} not been marked — "
+                        "evaluate the examination.")
+    return blockers
+
+
+@transaction.atomic
+def finalize(exam: Examination, user, note: str = "") -> None:
+    from django.utils import timezone
+
+    from .models import FinalizationEvent
+
+    exam = Examination.objects.select_for_update().get(pk=exam.pk)
+    blockers = finalize_blockers(exam)
+    if blockers:
+        raise EvaluationError(" ".join(blockers))
+    update_ranks(exam)
+    exam.status = Examination.Status.FINALIZED
+    exam.finalized_at = timezone.now()
+    exam.finalized_by = user
+    exam.save(update_fields=["status", "finalized_at", "finalized_by", "updated_at"])
+    FinalizationEvent.objects.create(exam=exam, action="finalized", note=note[:255], user=user,
+                                     summary=_json_summary(summary(exam)))
+    log.info("Exam %s finalized", exam.uid)
+
+
+@transaction.atomic
+def reopen(exam: Examination, user, note: str) -> None:
+    from .models import FinalizationEvent
+
+    exam = Examination.objects.select_for_update().get(pk=exam.pk)
+    if not exam.is_finalized:
+        raise EvaluationError("The examination is not finalized.")
+    if not note.strip():
+        raise EvaluationError("Give a reason for reopening the results.")
+    exam.status = Examination.Status.ACTIVE
+    exam.save(update_fields=["status", "updated_at"])
+    FinalizationEvent.objects.create(exam=exam, action="reopened", note=note.strip()[:255], user=user,
+                                     summary=_json_summary(summary(exam)))
+    log.info("Exam %s reopened", exam.uid)

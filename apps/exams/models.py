@@ -92,6 +92,9 @@ class Examination(models.Model):
                                         on_delete=models.SET_NULL, related_name="+")
 
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)
+    finalized_at = models.DateTimeField(null=True, blank=True)
+    finalized_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+                                     related_name="+")
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

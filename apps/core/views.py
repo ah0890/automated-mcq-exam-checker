@@ -46,7 +46,13 @@ def dashboard(request):
         "students": Student.objects.filter(is_active=True).count(),
         "ready": exams.filter(answer_key_version__isnull=False, status=Examination.Status.ACTIVE).count(),
         "papers": Paper.objects.exclude(status=Paper.Status.EXCLUDED).count(),
+        "to_review": Paper.objects.filter(status__in=[Paper.Status.NEEDS_REVIEW, Paper.Status.FAILED]).count(),
     }
+    from apps.results.analytics import class_stats
+
+    latest_results = []
+    for exam in exams.filter(results__isnull=False).distinct()[:5]:
+        latest_results.append({"exam": exam, "stats": class_stats(exam)})
     upload_exams = list(exams.filter(status=Examination.Status.ACTIVE))
     # Default to the most recent examination that has a key but no papers yet.
     default_exam = (next((e for e in upload_exams if e.answer_key_version_id and not e.paper_count), None)
@@ -63,7 +69,8 @@ def dashboard(request):
          "desc": "Upload the official key and check every answer.", "url": "answerkeys:upload"},
         {"title": "Create an examination", "state": "done" if counts["exams"] else "todo",
          "desc": "Name, class, question count and marking rules.", "url": "exams:create"},
-        {"title": "Attach the key to the examination", "state": "done" if counts["ready"] else "todo",
+        {"title": "Attach the key to the examination",
+         "state": "done" if exams.filter(answer_key_version__isnull=False).exists() else "todo",
          "desc": "The examination is then ready for student papers."},
         {"title": "Upload the class's answer sheets", "state": "done" if counts["papers"] else "todo",
          "desc": "PDF, JPG or PNG — the whole class at once.", "url": "papers:upload_page"},
@@ -85,6 +92,7 @@ def dashboard(request):
         "counts": counts,
         "recent_exams": exams[:6],
         "upload_exams": upload_exams,
+        "latest_results": latest_results,
         "default_upload_exam": str(default_exam.uid) if default_exam else "",
         "data_dir": settings.DATA_DIR,
     })

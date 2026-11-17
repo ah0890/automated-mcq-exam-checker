@@ -41,6 +41,24 @@ class Result(models.Model):
         ordering = ["rank", "-obtained"]
 
 
+class FinalizationEvent(models.Model):
+    """Audit trail of finalizing and reopening examination results."""
+
+    class Action(models.TextChoices):
+        FINALIZED = "finalized", "Finalized"
+        REOPENED = "reopened", "Reopened"
+
+    exam = models.ForeignKey(Examination, on_delete=models.PROTECT, related_name="finalization_events")
+    action = models.CharField(max_length=10, choices=Action.choices)
+    note = models.CharField(max_length=255, blank=True)
+    summary = models.JSONField(default=dict)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
 class EvaluationRun(models.Model):
     """An explicit evaluation of a whole examination, kept as history."""
 

@@ -21,8 +21,8 @@ NAV_SECTIONS = [
         ("Manual Verification", "processing:queue", "patch-check", None),
     ]),
     ("Results", [
-        ("Class Results", None, "trophy", 6),
-        ("Question Analysis", None, "bar-chart-line", 6),
+        ("Class Results", "results:index", "trophy", None),
+        ("Question Analysis", "results:questions_index", "bar-chart-line", None),
         ("Reports", None, "file-earmark-text", 7),
     ]),
     ("System", [

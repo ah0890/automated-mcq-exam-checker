@@ -18,10 +18,13 @@ client product (polished SaaS-quality UI).
 
 ## Current milestone
 
-**Milestone 5 — complete.** Next: **Milestone 6 — Processing Center polish,
-Class Results dashboard and analytics** (class result table with search /
-sort / filters, competition ranks, Chart.js distributions, question-wise
-analysis, finalize results).
+**Milestone 6 — complete.** Next: **Milestone 7 — Reports and exports**
+(class result sheet in Excel, individual result cards PDF, examination
+summary PDF, question-analysis report, answer-key export, processing error
+report, examination backup and restore).
+
+Open decision recorded: negative totals are allowed (brief's formula taken
+literally); the user did not ask for a zero floor (2026-11-17).
 
 Accuracy terminology (agreed with the user, 2026-11-17): **marks** are judged
 only against the official answer key; **reading accuracy** is judged against
@@ -36,8 +39,8 @@ used to "correct" what was read.
 | 3 | Student paper upload and storage | Done |
 | 4 | OMR processing, manual verification UI, accuracy report | Done |
 | 5 | Evaluation engine | Done |
-| 6 | Class results dashboard, question analysis, finalize | Next (Processing Center done in M4) |
-| 7 | Excel/PDF reports, backups | Pending |
+| 6 | Class results dashboard, question analysis, finalize | Done |
+| 7 | Excel/PDF reports, backups | Next |
 | 8 | Testing, security review, documentation | Pending |
 
 ## Architecture
@@ -65,6 +68,16 @@ used to "correct" what was read.
   `MCQ_BACKGROUND_PROCESSING=false` processes synchronously (tests).
 
 ### Data model rules
+
+- Finalization: allowed only when the key is attached, every active paper is
+  verified (none awaiting processing, review or failed), every verified paper
+  is marked and no result is stale. Finalizing sets `Examination.status =
+  finalized` (+ `finalized_at/by`) and locks uploads, processing, review,
+  exclusion, editing, key changes and re-evaluation. Only a superuser can
+  reopen, with a mandatory reason. Both actions are `FinalizationEvent` rows.
+- Analytics (`apps/results/analytics.py`) use only current (non-stale)
+  results of verified papers; pending papers are listed but excluded from
+  statistics.
 
 - Results: one `Result` per paper recording the key version, a rules
   snapshot and a digest of the final answers it was computed from. It is
@@ -128,6 +141,12 @@ used to "correct" what was read.
   `competition_ranks()`.
 - `apps/results/services.py` — `evaluate_paper`, `auto_evaluate`,
   `evaluate_exam`, `update_ranks`, `stale_reasons`, `summary`.
+- `apps/results/analytics.py` — class rows/stats, distribution bands,
+  question analysis, difficulty summary, subject performance.
+- `static/js/charts.js` (Chart.js; data from `json_script` blocks),
+  `static/js/table.js` (search / filter / sort). Chart colours validated with
+  the data-viz palette checker: series blue #2a78d6, fail red #d03b3b
+  (CVD ΔE 23.8); status green/red was rejected (deutan ΔE 4.1).
 - `templates/papers/_uploader.html` + `static/js/uploader.js` — the uploader
   used on the dashboard, the upload page and the examination workspace
   (one request per file with progress; plain form post without JavaScript).
@@ -166,7 +185,7 @@ used to "correct" what was read.
 
 ## Tests actually performed
 
-- `manage.py test`: **118 tests, all passing** (2026-11-17).
+- `manage.py test`: **126 tests, all passing** (2026-11-17).
 - Real sample student sheet: OMR output matches manual ground truth exactly
   (roll number; 46 single answers; 1 multiple; 2 blanks; 1 faint mark →
   manual verification), also under 9 artificial distortions.
@@ -193,6 +212,11 @@ used to "correct" what was read.
   18 hand-calculated scenarios (default, negative marking incl. 0.05/0.1
   decimals, both multiple-mark policies, pass boundary, unresolved refusal,
   incomplete key, competition ranks with ties).
+- Real sample through the M6 pages: Class Results (1 student, 42/50, rank 1,
+  pass), Question Analysis (high-error questions exactly Q8, 9, 11, 44, 48
+  with the chosen wrong option), finalize and dashboard — rendered and
+  checked visually. Analytics tests use a generated 5-student class with
+  known answers (ties, blanks, multiple marks, a pending review).
 - OCR of the same key rendered as an image (benchmark, artificial
   variants): 300 dpi clean 50/50 and 3° tilt 50/50 with 0 wrong; 300 dpi JPEG
   q40 48/50, 0 wrong; heavier noise and ≤ 200 dpi images recover far fewer and
@@ -211,9 +235,9 @@ used to "correct" what was read.
 
 ## Pending work / next steps
 
-1. Milestone 6: Class Results page (rank table, search/sort/filter, student
-   names from roster), Chart.js analytics, Question Analysis page, Finalize
-   results (locks the examination), dashboard results widgets.
+1. Milestone 7: Excel class result sheet, PDF result cards and examination
+   summary, question-analysis report, processing error report, answer-key
+   export (exists), examination backup/restore; Reports page.
 2. Not yet done (recorded honestly): OCR cross-check of the handwritten
    roll-number boxes and of the printed exam/template ID (pages of the wrong
    sheet design are already rejected by the template-match score).

@@ -21,7 +21,7 @@
 <div class="row g-3 mb-4">
   <div class="col-6 col-xl-3"><a class="panel stat d-block text-decoration-none text-reset" href="{% url 'exams:list' %}"><div class="stat-label"><i class="bi bi-journal-text"></i> Examinations</div><div class="stat-value">{{ counts.exams }}</div><div class="stat-foot">{{ counts.ready }} ready for papers</div></a></div>
   <div class="col-6 col-xl-3"><a class="panel stat d-block text-decoration-none text-reset" href="{% url 'answerkeys:library' %}"><div class="stat-label"><i class="bi bi-key"></i> Verified answer keys</div><div class="stat-value">{{ counts.verified_keys }}</div><div class="stat-foot">{% if counts.draft_keys %}{{ counts.draft_keys }} awaiting verification{% else %}None awaiting verification{% endif %}</div></a></div>
-  <div class="col-6 col-xl-3"><a class="panel stat d-block text-decoration-none text-reset" href="{% url 'students:list' %}"><div class="stat-label"><i class="bi bi-people"></i> Students</div><div class="stat-value">{{ counts.students }}</div><div class="stat-foot">Active in class lists</div></a></div>
+  <div class="col-6 col-xl-3"><a class="panel stat d-block text-decoration-none text-reset" href="{% url 'processing:queue' %}"><div class="stat-label"><i class="bi bi-patch-check"></i> Papers to review</div><div class="stat-value">{{ counts.to_review }}</div><div class="stat-foot">{{ counts.papers }} paper{{ counts.papers|pluralize }} uploaded in total</div></a></div>
   <div class="col-6 col-xl-3"><a class="panel stat d-block text-decoration-none text-reset" href="{% url 'exams:layouts' %}"><div class="stat-label"><i class="bi bi-grid-3x3-gap"></i> Sheet layouts</div><div class="stat-value">{{ counts.layouts }}</div><div class="stat-foot">Calibrated answer sheets</div></a></div>
 </div>
 
@@ -38,8 +38,13 @@
         {% else %}
           <div class="empty py-4">
             <div class="empty-ic"><i class="bi bi-cloud-arrow-up"></i></div>
+            {% if counts.exams %}
+            <h3>All examinations are finalized</h3>
+            <p>Finalized results are locked. Create a new examination to upload another class's papers.</p>
+            {% else %}
             <h3>Create an examination to upload papers</h3>
             <p>Papers are uploaded into an examination so they are marked with its verified answer key and rules.</p>
+            {% endif %}
             <a class="btn btn-primary" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
           </div>
         {% endif %}
@@ -71,6 +76,27 @@
     </section>
   </div>
 </div>
+
+{% if latest_results %}
+<section class="panel mb-4">
+  <div class="panel-head"><div><h2 class="panel-title">Latest results</h2><p class="panel-sub">From saved results of verified papers</p></div>
+    <a class="btn btn-light btn-sm" href="{% url 'results:index' %}">All results</a></div>
+  <div class="table-responsive"><table class="table-x">
+    <thead><tr><th>Examination</th><th>Evaluated</th><th>Average</th><th>Highest</th><th>Pass rate</th><th>Status</th><th></th></tr></thead>
+    <tbody>{% for row in latest_results %}{% with e=row.exam s=row.stats %}
+      <tr>
+        <td><a class="cell-title" href="{% url 'results:class' e.uid %}">{{ e.name }}</a><div class="cell-sub">{{ e.class_section }} · {{ e.exam_date|date:"j M Y" }}</div></td>
+        <td class="tabular">{{ s.evaluated }} / {{ s.students }}</td>
+        <td class="tabular">{% if s.average is not None %}{{ s.average|floatformat:"-2" }} <span class="text-muted small">({{ s.average_pct|floatformat:"-1" }}%)</span>{% else %}—{% endif %}</td>
+        <td class="tabular">{% if s.highest is not None %}{{ s.highest|floatformat:"-2" }}{% else %}—{% endif %}</td>
+        <td class="tabular">{% if s.pass_rate is not None %}{{ s.pass_rate|floatformat:"-1" }}%{% else %}—{% endif %}</td>
+        <td>{% if e.is_finalized %}<span class="pill pill-success">Finalized</span>{% elif s.needs_review %}<span class="pill pill-warning">{{ s.needs_review }} to review</span>{% else %}<span class="pill pill-neutral">Provisional</span>{% endif %}</td>
+        <td class="text-end"><a class="btn btn-light btn-sm" href="{% url 'results:class' e.uid %}">Open</a></td>
+      </tr>
+    {% endwith %}{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
 
 <section class="panel mb-4">
   <div class="panel-head">
