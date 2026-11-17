@@ -45,7 +45,7 @@
           <div class="col-md-4">{% include "components/field.html" with field=form.passing_percentage %}</div>
           <div class="col-md-4">{% include "components/field.html" with field=form.multiple_mark_policy %}</div>
           <div class="col-md-6">{% include "components/field.html" with field=form.negative_marking %}</div>
-          <div class="col-md-6" id="negMarksWrap">{% include "components/field.html" with field=form.negative_marks %}</div>
+          <div class="col-md-6" id="negMarksWrap" data-show-when="id_negative_marking">{% include "components/field.html" with field=form.negative_marks %}</div>
         </div>
         <div class="small text-muted"><i class="bi bi-info-circle me-1"></i>Unanswered questions always score zero.</div>
       </div>
@@ -69,13 +69,4 @@
     </section>
   </div>
 </form>
-{% endblock %}
-{% block scripts %}
-<script>
-  (function () {
-    var toggle = document.getElementById('id_negative_marking'), wrap = document.getElementById('negMarksWrap');
-    function sync() { wrap.style.display = toggle.checked ? '' : 'none'; }
-    toggle.addEventListener('change', sync); sync();
-  })();
-</script>
 {% endblock %}

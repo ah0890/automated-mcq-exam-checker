@@ -18,10 +18,14 @@ client product (polished SaaS-quality UI).
 
 ## Current milestone
 
-**Milestone 7 — complete.** Next: **Milestone 8 — Testing, security review,
-performance and documentation** (security review of uploads/auth/headers,
-full end-to-end acceptance run, performance check on a larger batch,
-final documentation and report).
+**All eight milestones complete (2026-11-18).** The application is feature-
+complete for the brief. Final report: `docs/final-report.md`.
+
+Recommended next steps (not started): measure accuracy on real scanned or
+photographed sheets and tune `OMR_MARKED_THRESHOLD` / `OMR_EMPTY_THRESHOLD`;
+optional zero floor for negative totals; optional OCR of the printed exam ID.
+The LinkedIn post / interview PDF must NOT be prepared until the user writes
+exactly "DONE — GO TO LINKEDIN".
 
 Open decision recorded: negative totals are allowed (brief's formula taken
 literally); the user did not ask for a zero floor (2026-11-17).
@@ -41,7 +45,7 @@ used to "correct" what was read.
 | 5 | Evaluation engine | Done |
 | 6 | Class results dashboard, question analysis, finalize | Done |
 | 7 | Excel/PDF reports, backups | Done |
-| 8 | Testing, security review, documentation | Next |
+| 8 | Testing, security review, documentation | Done |
 
 ## Architecture
 
@@ -66,6 +70,19 @@ used to "correct" what was read.
   heartbeat is older than 2 minutes are re-queued on the next start
   (resume). SQLite runs in WAL mode so pages read while the worker writes.
   `MCQ_BACKGROUND_PROCESSING=false` processes synchronously (tests).
+
+### Security (Milestone 8)
+
+- Content-Security-Policy via Django's CSP middleware (`SECURE_CSP`):
+  `script-src 'self'`; there are no inline scripts or `on…=` handlers — all
+  behaviour is in static JS driven by data attributes (`static/js/app.js`:
+  `data-confirm`, `data-autosubmit`, `data-scroll-to`, `data-action-select`,
+  `data-show-when`). A test fails if inline JS is reintroduced.
+- `apps/core/auth.ThrottledLoginView`: LOGIN_MAX_FAILURES (5) per
+  username + address → LOGIN_LOCKOUT_SECONDS (900) lockout, cache-based.
+- `DJANGO_HTTPS=true` enables secure cookies, SSL redirect and HSTS.
+- Tests: every URL requires sign-in; mutating endpoints reject GET; CSRF
+  enforced; headers; lockout; no student data in logs.
 
 ### Data model rules
 
@@ -203,7 +220,7 @@ used to "correct" what was read.
 
 ## Tests actually performed
 
-- `manage.py test`: **139 tests, all passing** (2026-11-17).
+- `manage.py test`: **149 tests, all passing** (2026-11-18).
 - Real sample student sheet: OMR output matches manual ground truth exactly
   (roll number; 46 single answers; 1 multiple; 2 blanks; 1 faint mark →
   manual verification), also under 9 artificial distortions.
@@ -241,6 +258,14 @@ used to "correct" what was read.
   Report tests read the generated Excel and PDF content; backup tests do a
   full backup → delete → restore round trip and compare records, results,
   ranks and files, plus tampered/unsafe archive rejection.
+- Milestone 8: 16-step acceptance test through the web UI with the real
+  samples passes (key 50/50 identical to manual reading; result 42/50, 84%,
+  Pass; Excel row and FINAL result card verified). Performance: 40-page
+  22.7 MB scanner-style PDF of random artificial distortions of the real sheet
+  — upload/split 0.7 s, processing 24.4 s (0.61 s/paper), 40/40 rolls,
+  2000/2000 answers handled correctly, 0 silent errors. `pip-audit`: no known
+  vulnerabilities. `check --deploy`: only HTTPS warnings (resolved by
+  DJANGO_HTTPS=true; HSTS preload intentionally off).
 - OCR of the same key rendered as an image (benchmark, artificial
   variants): 300 dpi clean 50/50 and 3° tilt 50/50 with 0 wrong; 300 dpi JPEG
   q40 48/50, 0 wrong; heavier noise and ≤ 200 dpi images recover far fewer and
@@ -259,10 +284,8 @@ used to "correct" what was read.
 
 ## Pending work / next steps
 
-1. Milestone 8: security review (upload validation, auth on every view,
-   CSRF, headers, logging hygiene), acceptance run of the brief's 16-step
-   workflow on the real samples, performance on a larger synthetic batch,
-   README/user guide, final report.
+1. Real-world accuracy measurement on scanned/photographed sheets (needs
+   sheets from the user), then threshold tuning.
 2. Not yet done (recorded honestly): OCR cross-check of the handwritten
    roll-number boxes and of the printed exam/template ID (pages of the wrong
    sheet design are already rejected by the template-match score).

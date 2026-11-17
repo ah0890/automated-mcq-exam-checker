@@ -45,7 +45,7 @@
     <section class="panel h-100">
       <div class="panel-head"><div><h2 class="panel-title">Backups</h2><p class="panel-sub">Stored in the local data folder — never uploaded anywhere</p></div></div>
       <div class="panel-body border-bottom">
-        <form method="post" class="d-flex flex-wrap gap-2 align-items-end" onsubmit="this.action=this.querySelector('select').value;">{% csrf_token %}
+        <form method="post" class="d-flex flex-wrap gap-2 align-items-end" data-action-select>{% csrf_token %}
           <div class="flex-grow-1" style="min-width:220px"><label class="form-label" for="backupExam">Back up an examination</label>
             <select class="form-select" id="backupExam" required>
               <option value="">Select an examination</option>
@@ -79,7 +79,7 @@
           <form method="post" action="{% url 'reports:restore' %}" enctype="multipart/form-data">{% csrf_token %}
             <label class="form-label" for="archive">Restore an examination backup</label>
             <input class="form-control mb-2" type="file" id="archive" name="archive" accept=".zip" required>
-            <button class="btn btn-primary w-100 justify-content-center" onclick="return confirm('Restore this examination backup? Existing examinations are never overwritten.');"><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
+            <button class="btn btn-primary w-100 justify-content-center" data-confirm="Restore this examination backup? Existing examinations are never overwritten."><i class="bi bi-arrow-counterclockwise"></i> Restore</button>
             <div class="form-text mt-2">Every file is checked against its fingerprint before anything is restored.</div>
           </form>
         {% else %}

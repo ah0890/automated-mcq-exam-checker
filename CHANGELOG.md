@@ -1,5 +1,23 @@
 # Changelog
 
+## Milestone 8 — Security, acceptance testing and documentation (2026-11-18)
+
+### Added
+
+- Content-Security-Policy (`script-src 'self'`); all inline JavaScript moved
+  to static files driven by data attributes.
+- Sign-in throttling with temporary lockout after repeated failures.
+- `DJANGO_HTTPS` switch for secure cookies, HTTPS redirect and HSTS.
+- Security tests: every URL requires sign-in, state-changing endpoints
+  reject GET, CSRF enforcement, security headers, lockout, no inline
+  scripts, no student data in logs.
+- Acceptance test of the brief's 16-step workflow with the real sample files.
+- Performance run on a 40-page class PDF; dependency audit (no known
+  vulnerabilities).
+- Complete README (installation, teacher workflow, commands, security,
+  limitations) and `docs/final-report.md`.
+- 10 new tests (149 total).
+
 ## Milestone 7 — Reports, exports and backups (2026-11-17)
 
 ### Added

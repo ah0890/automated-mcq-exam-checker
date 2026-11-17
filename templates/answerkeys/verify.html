@@ -72,7 +72,7 @@
         {% endif %}
         <div class="d-flex flex-wrap gap-2 justify-content-between">
           <button class="btn btn-light text-danger" type="submit" name="action" value="discard" formnovalidate
-                  onclick="return confirm('Discard this draft? The uploaded document is kept on disk but the draft is removed.');">
+                  data-confirm="Discard this draft? The uploaded document is kept on disk but the draft is removed.">
             <i class="bi bi-trash3"></i> Discard draft</button>
           <div class="d-flex gap-2">
             <button class="btn btn-light" type="submit" name="action" value="save"><i class="bi bi-floppy"></i> Save draft</button>
@@ -100,16 +100,4 @@
 </div>
 </form>
 {% endblock %}
-{% block scripts %}
-<script>
-  (function () {
-    var form = document.getElementById('verifyForm'), out = document.getElementById('filledCount');
-    form.addEventListener('change', function (e) {
-      if (e.target.type !== 'radio') return;
-      out.textContent = new Set(Array.from(form.querySelectorAll('input[type=radio]:checked')).map(function (i) { return i.name; })).size;
-      var row = e.target.closest('.ans-row');
-      row.classList.remove('flag-missing', 'flag-conflict');
-    });
-  })();
-</script>
-{% endblock %}
+{% block scripts %}{% load static %}<script src="{% static 'js/verify.js' %}" defer></script>{% endblock %}

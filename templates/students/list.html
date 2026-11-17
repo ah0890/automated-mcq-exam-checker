@@ -17,7 +17,7 @@
   {% if total %}
     <form class="toolbar" method="get">
       <div class="input-icon"><i class="bi bi-search"></i><input class="form-control" type="search" name="q" value="{{ query }}" placeholder="Search by roll number or name"></div>
-      <select class="form-select" name="class" style="max-width:240px" onchange="this.form.submit()">
+      <select class="form-select" name="class" style="max-width:240px" data-autosubmit>
         <option value="">All classes</option>
         {% for c in classes %}<option value="{{ c.class_section }}"{% if c.class_section == klass %} selected{% endif %}>{{ c.class_section }} ({{ c.n }})</option>{% endfor %}
       </select>

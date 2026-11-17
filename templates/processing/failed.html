@@ -43,7 +43,7 @@
       <div class="panel-body d-flex flex-wrap gap-2">
         <form method="post" action="{% url 'processing:reprocess' exam.uid %}">{% csrf_token %}<input type="hidden" name="papers" value="{{ paper.uid }}"><button class="btn btn-light"><i class="bi bi-arrow-repeat"></i> Try again</button></form>
         <form method="post" action="{% url 'papers:set_excluded' paper.uid %}">{% csrf_token %}<input type="hidden" name="exclude" value="1"><input type="hidden" name="reason" value="Not readable: {{ paper.error_code }}">
-          <button class="btn btn-light text-danger" onclick="return confirm('Exclude this page from processing and results? It stays stored and can be restored.');"><i class="bi bi-slash-circle"></i> Exclude page</button></form>
+          <button class="btn btn-light text-danger" data-confirm="Exclude this page from processing and results? It stays stored and can be restored."><i class="bi bi-slash-circle"></i> Exclude page</button></form>
       </div>
     </section>
   </div>

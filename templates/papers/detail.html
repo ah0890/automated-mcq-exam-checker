@@ -82,7 +82,7 @@
             <button class="btn btn-light btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Restore paper</button>
           {% else %}
             <input type="hidden" name="exclude" value="1">
-            <button class="btn btn-light btn-sm text-danger" onclick="return confirm('Exclude this paper from processing and results? It stays stored and can be restored.');"><i class="bi bi-slash-circle"></i> Exclude from results</button>
+            <button class="btn btn-light btn-sm text-danger" data-confirm="Exclude this paper from processing and results? It stays stored and can be restored."><i class="bi bi-slash-circle"></i> Exclude from results</button>
           {% endif %}
         </form>
       </div>

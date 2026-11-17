@@ -77,6 +77,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.LoginRequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.csp.ContentSecurityPolicyMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -158,8 +159,37 @@ CSRF_COOKIE_SAMESITE = "Lax"
 X_FRAME_OPTIONS = "DENY"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
-SESSION_COOKIE_SECURE = env_bool("DJANGO_SECURE_COOKIES", False)
+# Content-Security-Policy: no inline scripts exist, so scripts are limited to
+# this application's own files. Inline style attributes are allowed.
+from django.utils.csp import CSP  # noqa: E402
+
+SECURE_CSP = {
+    "default-src": [CSP.SELF],
+    "script-src": [CSP.SELF],
+    "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
+    "img-src": [CSP.SELF, "data:"],
+    "font-src": [CSP.SELF],
+    "connect-src": [CSP.SELF],
+    "object-src": [CSP.NONE],
+    "base-uri": [CSP.SELF],
+    "form-action": [CSP.SELF],
+    "frame-ancestors": [CSP.NONE],
+}
+
+# HTTPS: the application normally runs on this computer over plain HTTP
+# (127.0.0.1). When it is served over HTTPS, set DJANGO_HTTPS=true to enable
+# secure cookies, HTTPS redirect and HSTS.
+SERVE_HTTPS = env_bool("DJANGO_HTTPS", False)
+SESSION_COOKIE_SECURE = SERVE_HTTPS or env_bool("DJANGO_SECURE_COOKIES", False)
 CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
+if SERVE_HTTPS:
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
+# Sign-in throttling: failed attempts per username and client address.
+LOGIN_MAX_FAILURES = int(os.environ.get("LOGIN_MAX_FAILURES", "5"))
+LOGIN_LOCKOUT_SECONDS = int(os.environ.get("LOGIN_LOCKOUT_SECONDS", "900"))
 
 # --- Processing ------------------------------------------------------------
 # Papers are read in a background thread of the web app; set to false to
