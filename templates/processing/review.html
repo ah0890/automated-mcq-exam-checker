@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Review paper {{ paper.sequence }}{% endblock %}
+{% block crumbs %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{% url 'processing:queue' %}">Manual Verification</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{{ exam.get_absolute_url }}#papers">{{ exam.name }}</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Paper {{ paper.sequence }}</span>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">{{ exam.name }} · {{ exam.class_section }}</div>
+    <h1 class="page-title">Review paper {{ paper.sequence }}</h1>
+    <p class="page-subtitle">
+      {% if paper.roll_number %}Roll no. <strong>{{ paper.roll_number }}</strong>{% if student %} · {{ student.name }}{% endif %}{% else %}Roll number not read{% endif %}
+      · {{ paper.source.original_name }}
+    </p>
+  </div>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <span class="pill {{ paper.status_css }}">{{ paper.get_status_display }}</span>
+    {% if remaining %}<span class="pill pill-neutral pill-plain">{{ remaining }} paper{{ remaining|pluralize }} to review in this exam</span>{% endif %}
+  </div>
+</header>
+
+{% if problems %}
+  <div class="flash-stack">{% for p in problems %}<div class="flash error"><i class="ic bi bi-x-octagon-fill"></i><div>{{ p }}</div></div>{% endfor %}</div>
+{% endif %}
+{% if paper.review_flags %}
+  <div class="flash-stack">
+    {% for f in paper.review_flags %}
+      <div class="flash {% if f.blocking %}warning{% else %}info{% endif %}"><i class="ic bi {% if f.blocking %}bi-exclamation-triangle-fill{% else %}bi-info-circle-fill{% endif %}"></i><div>{{ f.message }}</div></div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<form method="post" id="reviewForm">{% csrf_token %}
+<div class="row g-4">
+  <div class="col-xl-7">
+    {% if has_roll_grid %}
+    <section class="panel mb-4">
+      <div class="panel-head"><div><h2 class="panel-title">Roll number</h2><p class="panel-sub">Read from the bubble grid{% if paper.roll_source == "teacher" %} · entered by you{% endif %}</p></div>
+        {% if paper.roll_number %}<span class="pill pill-success">{{ paper.roll_number }}</span>{% else %}<span class="pill pill-danger">Unreadable</span>{% endif %}</div>
+      <div class="panel-body d-flex flex-wrap gap-4 align-items-center">
+        <img src="{% url 'processing:roll_image' paper.uid %}" alt="Roll number area" style="max-width:260px;border:1px solid var(--line);border-radius:8px">
+        <div style="min-width:200px" class="flex-grow-1">
+          <label class="form-label" for="roll_number">Roll number</label>
+          <input class="form-control form-control-lg tabular" id="roll_number" name="roll_number" value="{{ paper.roll_number }}" maxlength="20" autocomplete="off" {% if exam.is_finalized %}disabled{% endif %}>
+          <div class="form-text">Green circles show the digits read. Compare with the digits written above the grid.</div>
+          {% if student %}<div class="small mt-2"><i class="bi bi-person-check text-success me-1"></i>{{ student.name }}</div>{% endif %}
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <section class="panel mb-4">
+      <div class="panel-head">
+        <div><h2 class="panel-title">Questions to check</h2><p class="panel-sub">Uncertain, multiple-marked and previously corrected answers</p></div>
+        <div class="legend"><span style="color:#12b76a"><i class="bi bi-circle"></i> Read as marked</span><span style="color:#f79009"><i class="bi bi-circle"></i> Faint / uncertain</span></div>
+      </div>
+      {% if flagged %}
+        <ul class="list-unstyled m-0">
+          {% for r in flagged %}
+            <li class="d-flex flex-wrap gap-3 align-items-center px-4 py-3 border-bottom">
+              <div style="width:52px" class="fw-bold tabular">Q{{ r.q }}</div>
+              <img src="{% url 'processing:question_image' paper.uid r.q %}" alt="Question {{ r.q }}" style="height:64px;border:1px solid var(--line);border-radius:8px;background:#fff">
+              <div class="flex-grow-1" style="min-width:160px">
+                <div class="small fw-semibold">{% if r.uncertain %}<span class="text-warning-emphasis">Uncertain</span>{% else %}{{ r.display }}{% endif %}{% if r.teacher %} <span class="pill pill-neutral pill-plain ms-1">Corrected</span>{% endif %}</div>
+                <div class="small text-muted">{% if r.entry.candidates %}Marks seen: {{ r.entry.candidates }}{% else %}No marks seen{% endif %}{% if r.entry.confidence is not None and not r.teacher %} · confidence {{ r.entry.confidence|floatformat:2 }}{% endif %}</div>
+              </div>
+              <div class="opt-group" role="radiogroup" aria-label="Answer for question {{ r.q }}">
+                {% for label in labels %}<input type="radio" id="f{{ r.q }}{{ label }}" name="q_{{ r.q }}" value="{{ label }}"{% if r.current == label %} checked{% endif %}{% if exam.is_finalized %} disabled{% endif %}><label for="f{{ r.q }}{{ label }}">{{ label }}</label>{% endfor %}
+                <input type="radio" id="f{{ r.q }}b" name="q_{{ r.q }}" value="-"{% if r.current == "-" %} checked{% endif %}{% if exam.is_finalized %} disabled{% endif %}><label for="f{{ r.q }}b" title="No answer">–</label>
+                <input type="radio" id="f{{ r.q }}m" name="q_{{ r.q }}" value="*"{% if r.current == "*" %} checked{% endif %}{% if exam.is_finalized %} disabled{% endif %}><label for="f{{ r.q }}m" title="Multiple / invalid">×</label>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="panel-body small text-muted"><i class="bi bi-check2-circle text-success me-1"></i>Every answer on this paper was read with confidence.</div>
+      {% endif %}
+    </section>
+
+    <section class="panel mb-4">
+      <div class="panel-head">
+        <div><h2 class="panel-title">All answers</h2><p class="panel-sub">Correct any answer if the reading does not match the paper</p></div>
+        <button class="btn btn-light btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#allAnswers">Show</button>
+      </div>
+      <div class="collapse" id="allAnswers"><div class="panel-body">
+        <div class="answer-grid">
+          {% for r in rows %}{% if not r.uncertain and not r.teacher and r.entry.status != "multiple" %}
+            <div class="ans-row">
+              <span class="qn">{{ r.q }}</span>
+              <div class="opt-group">
+                {% for label in labels %}<input type="radio" id="a{{ r.q }}{{ label }}" name="q_{{ r.q }}" value="{{ label }}"{% if r.current == label %} checked{% endif %}{% if exam.is_finalized %} disabled{% endif %}><label for="a{{ r.q }}{{ label }}">{{ label }}</label>{% endfor %}
+                <input type="radio" id="a{{ r.q }}b" name="q_{{ r.q }}" value="-"{% if r.current == "-" %} checked{% endif %}{% if exam.is_finalized %} disabled{% endif %}><label for="a{{ r.q }}b" title="No answer">–</label>
+              </div>
+            </div>
+          {% endif %}{% endfor %}
+        </div>
+      </div></div>
+    </section>
+
+    {% if not exam.is_finalized %}
+    <div class="panel mb-4"><div class="panel-body d-flex flex-wrap justify-content-between gap-2 align-items-center">
+      <span class="small text-muted"><i class="bi bi-shield-check me-1"></i>Every change is recorded with your name and the time.</span>
+      <div class="d-flex gap-2">
+        <button class="btn btn-light" type="submit" name="action" value="save"><i class="bi bi-floppy"></i> Save</button>
+        <button class="btn btn-primary" type="submit" name="action" value="confirm"><i class="bi bi-patch-check"></i> Confirm paper{% if remaining > 1 %} &amp; next{% endif %}</button>
+      </div>
+    </div></div>
+    {% endif %}
+
+    {% if corrections %}
+    <section class="panel">
+      <div class="panel-head"><h2 class="panel-title">Correction history</h2></div>
+      <div class="table-responsive"><table class="table-x">
+        <thead><tr><th>Item</th><th>From</th><th>To</th><th>By</th><th>When</th></tr></thead>
+        <tbody>{% for c in corrections %}<tr><td class="fw-semibold">{% if c.field == "roll_number" %}Roll number{% else %}{{ c.field|upper }}{% endif %}</td><td>{{ c.old_value|default:"—" }}</td><td>{{ c.new_value|default:"—" }}</td><td>{{ c.user.get_username|default:"—" }}</td><td class="cell-sub nowrap">{{ c.created_at|date:"j M, H:i" }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </section>
+    {% endif %}
+  </div>
+
+  <div class="col-xl-5">
+    <section class="panel sticky-side">
+      <div class="panel-head"><div><h2 class="panel-title">Paper as read</h2><p class="panel-sub">Straightened and aligned to the answer sheet</p></div>
+        <a class="btn btn-light btn-sm" href="{{ paper.get_absolute_url }}" title="Original upload"><i class="bi bi-file-earmark-image"></i></a></div>
+      <div class="panel-body"><div class="doc-viewer"><img src="{% url 'processing:processed_image' paper.uid %}" alt="Aligned paper {{ paper.sequence }}"></div></div>
+    </section>
+  </div>
+</div>
+</form>
+{% endblock %}

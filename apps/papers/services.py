@@ -156,7 +156,11 @@ def paper_stats(exam: Examination) -> dict:
     return {
         "total": active,
         "files": SourceFile.objects.filter(exam=exam).count(),
-        "awaiting": counts[Paper.Status.UPLOADED],
+        "awaiting": counts[Paper.Status.UPLOADED] + counts[Paper.Status.QUEUED],
+        "startable": counts[Paper.Status.UPLOADED] + counts[Paper.Status.FAILED],
+        "to_review": counts[Paper.Status.NEEDS_REVIEW] + counts[Paper.Status.FAILED],
+        "read": counts[Paper.Status.PROCESSED] + counts[Paper.Status.NEEDS_REVIEW],
+        "processing": counts[Paper.Status.PROCESSING],
         "processed": counts[Paper.Status.PROCESSED],
         "needs_review": counts[Paper.Status.NEEDS_REVIEW],
         "failed": counts[Paper.Status.FAILED],

@@ -48,6 +48,7 @@ class SourceFile(models.Model):
 class Paper(models.Model):
     class Status(models.TextChoices):
         UPLOADED = "uploaded", "Awaiting processing"
+        QUEUED = "queued", "Queued"
         PROCESSING = "processing", "Processing"
         PROCESSED = "processed", "Processed"
         NEEDS_REVIEW = "needs_review", "Needs review"
@@ -65,12 +66,48 @@ class Paper(models.Model):
                                    help_text="Hash of the rendered answer page, for duplicate detection.")
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.UPLOADED, db_index=True)
     status_note = models.CharField(max_length=255, blank=True)
+
+    # --- recognition (Milestone 4) ---------------------------------------------------
+    roll_number = models.CharField(max_length=20, blank=True, db_index=True,
+                                   help_text="Final roll number (read by OMR or entered by the teacher).")
+    roll_source = models.CharField(max_length=10, blank=True)  # "omr" | "teacher"
+    answers = models.JSONField(default=dict, blank=True,
+                               help_text='Final answers: {"1": {"value": "A", "status": "answered", '
+                                         '"source": "omr"}, ...}')
+    reading = models.JSONField(default=dict, blank=True, help_text="Raw OMR output of the latest run.")
+    review_flags = models.JSONField(default=list, blank=True)
+    processed_image = models.CharField(max_length=255, blank=True)
+    error_code = models.CharField(max_length=40, blank=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+                                    related_name="+")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["exam", "sequence"]
         constraints = [models.UniqueConstraint(fields=["exam", "sequence"], name="unique_paper_sequence")]
+
+    @property
+    def uncertain_questions(self) -> list[int]:
+        return sorted(int(q) for q, a in self.answers.items() if a.get("status") == "uncertain")
+
+    @property
+    def answer_counts(self) -> dict:
+        counts = {"answered": 0, "blank": 0, "multiple": 0, "uncertain": 0}
+        for a in self.answers.values():
+            counts[a.get("status", "uncertain")] = counts.get(a.get("status", "uncertain"), 0) + 1
+        return counts
+
+    @property
+    def student(self):
+        from apps.students.models import Student
+
+        if not self.roll_number:
+            return None
+        return Student.objects.filter(roll_number=self.roll_number, class_section=self.exam.class_section).first()
 
     def __str__(self):
         return f"Paper {self.sequence}"
@@ -94,6 +131,7 @@ class Paper(models.Model):
     def status_css(self) -> str:
         return {
             self.Status.UPLOADED: "pill-neutral",
+            self.Status.QUEUED: "pill-neutral",
             self.Status.PROCESSING: "pill-warning",
             self.Status.PROCESSED: "pill-success",
             self.Status.NEEDS_REVIEW: "pill-warning",

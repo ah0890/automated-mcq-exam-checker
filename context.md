@@ -18,11 +18,15 @@ client product (polished SaaS-quality UI).
 
 ## Current milestone
 
-**Milestone 3 — complete.** Next: **Milestone 4 — OMR processing and manual
-verification** (resumable background worker reading each paper with the `omr`
-engine; roll number + answers stored with confidence; review screen with
-original image, cropped question, detected answer and correction; accuracy
-report on the samples).
+**Milestone 4 — complete.** Next: **Milestone 5 — Evaluation engine**
+(stand-alone, exact decimal arithmetic; compares final answers with the
+verified key; negative marking, multiple-mark policy, pass/fail, competition
+ranking; stores results per paper; re-evaluation when the key changes).
+
+Accuracy terminology (agreed with the user, 2026-11-17): **marks** are judged
+only against the official answer key; **reading accuracy** is judged against
+what is actually on each paper (manual ground truth). The key must never be
+used to "correct" what was read.
 
 | # | Milestone | Status |
 |---|-----------|--------|
@@ -30,8 +34,8 @@ report on the samples).
 | — | UI redesign (design system) | Done |
 | 2 | Examinations, sheet layouts, Answer Key Library, students | Done |
 | 3 | Student paper upload and storage | Done |
-| 4 | OMR integration, manual verification UI, accuracy report | Next (engine core done in M1) |
-| 5 | Evaluation engine | Pending |
+| 4 | OMR processing, manual verification UI, accuracy report | Done |
+| 5 | Evaluation engine | Next |
 | 6 | Processing center, results dashboard, analytics | Pending |
 | 7 | Excel/PDF reports, backups | Pending |
 | 8 | Testing, security review, documentation | Pending |
@@ -46,14 +50,30 @@ report on the samples).
   `apps/exams` (SheetLayout, Examination), `apps/answerkeys` (AnswerKey,
   AnswerKeyVersion, extraction), `apps/students` (Student roster),
   `apps/papers` (UploadBatch, SourceFile, Paper; upload, splitting,
-  duplicate detection, viewer).
+  duplicate detection, viewer), `apps/processing` (ProcessingJob,
+  Correction; engine, worker, review).
 - Stand-alone packages (no Django imports): `omr/`, and
   `apps/answerkeys/extraction.py`. The evaluation engine (M5) will also be
   stand-alone.
-- Background processing plan (M3/M6): database-backed job/page state + a
-  worker management command; resumable and idempotent (SHA-256 fingerprints).
+- Processing: `ProcessingJob` rows list paper ids; a daemon thread in the
+  web process (started on demand by `ensure_worker()`) or the
+  `process_papers` command runs queued jobs. Each paper is claimed atomically
+  (QUEUED → PROCESSING) and committed individually; RUNNING jobs whose
+  heartbeat is older than 2 minutes are re-queued on the next start
+  (resume). SQLite runs in WAL mode so pages read while the worker writes.
+  `MCQ_BACKGROUND_PROCESSING=false` processes synchronously (tests).
 
 ### Data model rules
+
+- Paper recognition fields: `roll_number` + `roll_source` (omr|teacher),
+  `answers` {q: {value, status (answered|blank|multiple|uncertain), source
+  (omr|teacher), confidence, candidates}}, `reading` (raw OMR output),
+  `review_flags` [{code, message, blocking}], `processed_image` (aligned PNG
+  under `processed_papers/`). Teacher values survive reprocessing. Blocking
+  flags: roll_unreadable, uncertain_answers, duplicate_roll, orientation.
+  Every manual change is a `Correction` row (field, old, new, user, time).
+  A paper is confirmed only with no uncertain answers, a roll number (if the
+  sheet has a grid) and no duplicate roll in the examination.
 
 - Papers: each uploaded file is a SourceFile (unique per exam by SHA-256);
   each student's sheet is a Paper = consecutive pages of a source file
@@ -85,6 +105,10 @@ report on the samples).
 - `apps/answerkeys/services.py`, `apps/exams/services.py` — business logic.
 - `apps/papers/services.py` — `add_file()` (validate, dedupe, store, split),
   `page_fingerprints()`, `paper_stats()`.
+- `apps/processing/engine.py` (`process_paper`, `check_roll_conflicts`),
+  `worker.py` (enqueue/run/resume/cancel, background thread), `review.py`
+  (`save_review`, question/roll crops), management commands
+  `process_papers` and `recognition_report`.
 - `templates/papers/_uploader.html` + `static/js/uploader.js` — the uploader
   used on the dashboard, the upload page and the examination workspace
   (one request per file with progress; plain form post without JavaScript).
@@ -123,7 +147,7 @@ report on the samples).
 
 ## Tests actually performed
 
-- `manage.py test`: **72 tests, all passing** (2026-11-17).
+- `manage.py test`: **89 tests, all passing** (2026-11-17).
 - Real sample student sheet: OMR output matches manual ground truth exactly
   (roll number; 46 single answers; 1 multiple; 2 blanks; 1 faint mark →
   manual verification), also under 9 artificial distortions.
@@ -134,6 +158,15 @@ report on the samples).
   uploaded through the AJAX upload endpoint (1 paper), re-upload under a
   different name detected as a duplicate; workspace, viewer and thumbnails
   rendered and checked visually.
+- `manage.py recognition_report --distortions` (2026-11-17), 1 paper with
+  manual ground truth: roll number 1/1; answers handled correctly 50/50
+  (0 silent errors; the 1 faint mark sent to review, not guessed); identical
+  under 9 artificial distortions; 0.2–0.4 s per paper. **One paper is far too
+  few for a reliable accuracy figure; the sheet is computer-generated.**
+- Live server test with the background thread: upload → start (returned in
+  0.13 s) → status polling → job done in 0.9 s, paper in review, no errors.
+- Full review flow on the real paper: Q50 (faint B) confirmed as B by the
+  teacher, correction logged, paper verified.
 - OCR of the same key rendered as an image (benchmark, artificial
   variants): 300 dpi clean 50/50 and 3° tilt 50/50 with 0 wrong; 300 dpi JPEG
   q40 48/50, 0 wrong; heavier noise and ≤ 200 dpi images recover far fewer and
@@ -144,17 +177,19 @@ report on the samples).
 
 - Only one completed student sheet, computer-generated (not a scan). Accuracy
   on real scans/photos is not yet measured.
-- OMR thresholds are provisional (one sheet).
+- OMR thresholds are provisional (one sheet); configurable via
+  `OMR_MARKED_THRESHOLD` / `OMR_EMPTY_THRESHOLD`.
 - Blank sheet must be supplied upright for calibration.
 - OCR of low-resolution or noisy answer-key images is unreliable (see above).
 - Tesseract has only `eng` and `osd` language data.
 
 ## Pending work / next steps
 
-1. Milestone 4: processing worker (management command + database job state,
-   resumable, idempotent), OMR reading of each paper, roll-number cross-check,
-   template/exam-ID mismatch detection, review queue UI with per-question
-   crops and corrections, accuracy measurement on samples.
+1. Milestone 5: evaluation engine package + stored results; marking runs
+   automatically for verified papers; results visible per paper.
+2. Not yet done (recorded honestly): OCR cross-check of the handwritten
+   roll-number boxes and of the printed exam/template ID (pages of the wrong
+   sheet design are already rejected by the template-match score).
 2. Ask the user for more completed sheets (ideally real scans) and a class list.
 
 ## Git

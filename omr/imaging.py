@@ -40,6 +40,24 @@ def load_pages(source: str | Path | bytes, *, suffix: str | None = None, dpi: in
     raise OMRError("unsupported_format", f"Unsupported file type '{suffix}'.")
 
 
+def load_page(path: str | Path, page_number: int = 1, dpi: int = DEFAULT_DPI) -> np.ndarray:
+    """Load a single page (1-based) of a PDF, or an image file, as grayscale."""
+    path = Path(path)
+    if path.suffix.lower() in PDF_SUFFIXES:
+        try:
+            doc = pymupdf.open(path)
+        except Exception as exc:
+            raise OMRError("unreadable_pdf", "The PDF could not be opened.") from exc
+        with doc:
+            if not 1 <= page_number <= doc.page_count:
+                raise OMRError("missing_page", f"The file has no page {page_number}.")
+            pix = doc[page_number - 1].get_pixmap(dpi=dpi, colorspace=pymupdf.csGRAY, alpha=False)
+            if pix.width * pix.height > MAX_PIXELS:
+                raise OMRError("page_too_large", "The page is too large to process.")
+            return np.frombuffer(pix.samples, np.uint8).reshape(pix.height, pix.stride)[:, : pix.width].copy()
+    return load_pages(path)[0]
+
+
 def _load_pdf(data: bytes, dpi: int) -> list[np.ndarray]:
     try:
         doc = pymupdf.open(stream=data, filetype="pdf")

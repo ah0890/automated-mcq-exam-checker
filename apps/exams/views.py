@@ -62,6 +62,9 @@ def exam_detail(request, uid):
     return render(request, "exams/detail.html", {
         "exam": exam, "key_form": key_form, "has_compatible_keys": key_form.fields["version"].queryset.exists(),
         "papers": papers, "paper_stats": paper_stats(exam),
+        "active_job": exam.processing_jobs.filter(status__in=["queued", "running"]).first(),
+        "last_job": exam.processing_jobs.first(),
+        "can_reprocess": not exam.is_finalized and bool(exam.answer_key_version_id),
     })
 
 

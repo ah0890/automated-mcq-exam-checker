@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Manual verification{% endblock %}
+{% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Manual Verification</span>{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Processing</div>
+    <h1 class="page-title">Manual verification</h1>
+    <p class="page-subtitle">Papers with uncertain marks, unreadable or duplicate roll numbers, or pages that could not be read. Nothing here is marked until you confirm it.</p>
+  </div>
+  {% if exam_uid %}<a class="btn btn-light" href="{% url 'processing:queue' %}">Show all examinations</a>{% endif %}
+</header>
+<section class="panel">
+  {% if papers %}
+    <div class="table-responsive"><table class="table-x">
+      <thead><tr><th>Examination</th><th>Paper</th><th>Roll no.</th><th>Reason</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for p in papers %}
+        <tr>
+          <td><a class="cell-title" href="{{ p.exam.get_absolute_url }}">{{ p.exam.name }}</a><div class="cell-sub">{{ p.exam.class_section }}</div></td>
+          <td class="fw-semibold nowrap">Paper {{ p.sequence }}</td>
+          <td class="tabular">{{ p.roll_number|default:"—" }}</td>
+          <td class="small">{% for f in p.review_flags %}{% if f.blocking %}<div>{{ f.message }}</div>{% endif %}{% empty %}{{ p.status_note }}{% endfor %}</td>
+          <td><span class="pill {{ p.status_css }}">{{ p.get_status_display }}</span></td>
+          <td class="text-end"><a class="btn btn-primary btn-sm" href="{% url 'processing:review' p.uid %}">Review</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}
+    <div class="empty">
+      <div class="empty-ic"><i class="bi bi-patch-check"></i></div>
+      <h3>Nothing to review</h3>
+      <p>Every processed paper was read with confidence or has already been confirmed by you.</p>
+      <a class="btn btn-light" href="{% url 'processing:center' %}">Processing Center</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

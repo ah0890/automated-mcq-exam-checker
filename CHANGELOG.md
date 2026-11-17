@@ -1,5 +1,28 @@
 # Changelog
 
+## Milestone 4 — Processing and manual verification (2026-11-17)
+
+### Added
+
+- **Processing:** start from the examination workspace; papers are read in
+  the background with a live progress bar; each paper is saved as soon as it
+  is read; interrupted runs resume automatically; papers are never read twice
+  unless reprocessing is requested; runs can be stopped.
+- Roll number and every answer stored with status (answered, blank, multiple,
+  uncertain) and confidence; aligned page image kept for review.
+- Review flags: unreadable roll number, uncertain marks, duplicate roll
+  numbers within the examination, doubtful orientation; pages that are not
+  the answer sheet fail cleanly without stopping the batch.
+- **Manual Verification:** review queue across examinations; review screen
+  with roll-number crop beside the written digits, magnified crops of
+  uncertain/multiple questions, the full aligned page, editable answers and a
+  correction history. Papers are confirmed only when nothing is unresolved.
+- **Processing Center:** per-examination status and recent runs.
+- Reprocess selected papers; teacher corrections are kept.
+- `process_papers` command (run/resume queued work) and
+  `recognition_report` command (reading accuracy against manual ground truth).
+- 17 new tests (89 total), including the real sample paper end to end.
+
 ## Milestone 3 — Student paper upload and storage (2026-11-17)
 
 ### Added

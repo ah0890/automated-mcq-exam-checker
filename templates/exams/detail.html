@@ -34,12 +34,27 @@
     <a class="btn btn-primary" href="#papers">Upload papers</a>
   </div>
 {% elif exam.stage == "ready_to_process" %}
+  {% if paper_stats.awaiting %}
+  <div class="next-action mb-4">
+    <span class="na-ic"><i class="bi bi-cpu"></i></span>
+    <div class="flex-grow-1"><div class="na-title">Next: process {{ paper_stats.awaiting }} paper{{ paper_stats.awaiting|pluralize }}</div>
+      <div class="na-text">Roll numbers and answers are read automatically. Anything uncertain is sent to you for review.</div></div>
+    <a class="btn btn-primary" href="#processing">Go to processing</a>
+  </div>
+  {% elif paper_stats.to_review %}
+  <div class="next-action mb-4">
+    <span class="na-ic"><i class="bi bi-patch-question"></i></span>
+    <div class="flex-grow-1"><div class="na-title">Next: review {{ paper_stats.to_review }} paper{{ paper_stats.to_review|pluralize }}</div>
+      <div class="na-text">These papers have uncertain marks, unreadable roll numbers or could not be read.</div></div>
+    <a class="btn btn-primary" href="{% url 'processing:queue' %}?exam={{ exam.uid }}">Start review</a>
+  </div>
+  {% else %}
   <div class="next-action done mb-4">
     <span class="na-ic"><i class="bi bi-check-lg"></i></span>
-    <div class="flex-grow-1"><div class="na-title">{{ paper_stats.total }} paper{{ paper_stats.total|pluralize }} uploaded</div>
-      <div class="na-text">Reading roll numbers and answers is added with the processing engine (Milestone 4). You can keep adding papers.</div></div>
-    <a class="btn btn-light" href="#papers">View papers</a>
+    <div class="flex-grow-1"><div class="na-title">All {{ paper_stats.processed }} paper{{ paper_stats.processed|pluralize }} read and verified</div>
+      <div class="na-text">Marking and class results are added with the evaluation engine (Milestone 5).</div></div>
   </div>
+  {% endif %}
 {% endif %}
 
 <div class="row g-3 mb-4">
@@ -49,6 +64,43 @@
   <div class="col-6 col-lg-3"><div class="panel stat"><div class="stat-label"><i class="bi bi-dash-circle"></i> Negative marking</div><div class="stat-value">{% if exam.negative_marking %}−{{ exam.negative_marks|floatformat:"-2" }}{% else %}None{% endif %}</div><div class="stat-foot">{% if exam.negative_marking %}per wrong answer{% else %}Wrong answers score zero{% endif %}</div></div></div>
 </div>
 
+
+<section class="panel mb-4" id="processing" data-status-url="{% url 'processing:status' exam.uid %}"{% if active_job %} data-active="1"{% endif %}>
+  <div class="panel-head">
+    <div><h2 class="panel-title">Processing</h2>
+      <p class="panel-sub">Reads every paper's roll number and answers. Progress is saved paper by paper.</p></div>
+    <div class="d-flex gap-2">
+      {% if active_job %}
+        <form method="post" action="{% url 'processing:cancel' exam.uid %}">{% csrf_token %}<button class="btn btn-light btn-sm"><i class="bi bi-stop-circle"></i> Stop</button></form>
+      {% elif not exam.is_finalized and exam.answer_key_version and paper_stats.startable %}
+        <form method="post" action="{% url 'processing:start' exam.uid %}">{% csrf_token %}
+          <button class="btn btn-primary btn-sm"><i class="bi bi-play-fill"></i> Process {{ paper_stats.startable }} paper{{ paper_stats.startable|pluralize }}</button></form>
+      {% endif %}
+    </div>
+  </div>
+  <div class="panel-body">
+    {% if not exam.answer_key_version %}
+      <div class="small text-muted"><i class="bi bi-lock me-1"></i>Processing becomes available once a verified answer key is attached.</div>
+    {% elif not paper_stats.total %}
+      <div class="small text-muted"><i class="bi bi-info-circle me-1"></i>Upload papers below, then start processing.</div>
+    {% else %}
+      <div class="d-flex justify-content-between small mb-2">
+        <span class="fw-semibold" data-proc-label>{% if active_job %}{{ active_job.get_status_display }} — {{ active_job.done }} of {{ active_job.total }}{% elif last_job %}Last run {{ last_job.created_at|date:"j M, H:i" }} · {{ last_job.get_status_display }}{% if last_job.seconds %} in {{ last_job.seconds|floatformat:1 }} s{% endif %}{% else %}Not started{% endif %}</span>
+        <span class="text-muted tabular" data-proc-percent>{% if active_job %}{{ active_job.percent }}%{% endif %}</span>
+      </div>
+      <div class="progress mb-3" style="height:8px"><div class="progress-bar{% if active_job %} progress-bar-striped progress-bar-animated{% endif %}" data-proc-bar style="width:{% if active_job %}{{ active_job.percent }}{% else %}{% widthratio paper_stats.read paper_stats.total 100 %}{% endif %}%"></div></div>
+      <div class="dist">
+        <div class="dist-item"><b data-stat="awaiting">{{ paper_stats.awaiting }}</b><span>Awaiting</span></div>
+        <div class="dist-item"><b data-stat="processed">{{ paper_stats.processed }}</b><span>Read &amp; verified</span></div>
+        <div class="dist-item"><b data-stat="needs_review">{{ paper_stats.needs_review }}</b><span>Needs review</span></div>
+        <div class="dist-item"><b data-stat="failed">{{ paper_stats.failed }}</b><span>Could not read</span></div>
+      </div>
+      {% if paper_stats.to_review %}
+        <a class="btn btn-primary btn-sm mt-3" href="{% url 'processing:queue' %}?exam={{ exam.uid }}"><i class="bi bi-patch-check"></i> Review {{ paper_stats.to_review }} paper{{ paper_stats.to_review|pluralize }}</a>
+      {% endif %}
+    {% endif %}
+  </div>
+</section>
 
 <section class="panel mb-4" id="papers">
   <div class="panel-head">
@@ -69,30 +121,37 @@
     </div>
   {% endif %}
   {% if papers %}
-    <div class="row g-0 border-bottom">
-      <div class="col-6 col-md-3 stat border-end"><div class="stat-label">Uploaded</div><div class="stat-value">{{ paper_stats.total }}</div></div>
-      <div class="col-6 col-md-3 stat border-end"><div class="stat-label">Awaiting processing</div><div class="stat-value">{{ paper_stats.awaiting }}</div></div>
-      <div class="col-6 col-md-3 stat border-end"><div class="stat-label">Needs review</div><div class="stat-value">{{ paper_stats.needs_review }}</div></div>
-      <div class="col-6 col-md-3 stat"><div class="stat-label">Incomplete</div><div class="stat-value">{{ paper_stats.incomplete }}</div></div>
-    </div>
-    <div class="table-responsive" style="max-height:560px">
+    <form method="post" action="{% url 'processing:reprocess' exam.uid %}" id="reprocessForm">{% csrf_token %}
+    <div class="table-responsive" style="max-height:620px">
       <table class="table-x">
-        <thead><tr><th style="width:70px"></th><th>Paper</th><th>Source file</th><th>Pages</th><th>Uploaded</th><th>Status</th><th></th></tr></thead>
+        <thead><tr>{% if can_reprocess %}<th style="width:36px"><input class="form-check-input" type="checkbox" data-select-all aria-label="Select all"></th>{% endif %}<th style="width:64px"></th><th>Paper</th><th>Roll no.</th><th>Answers read</th><th>Source</th><th>Status</th><th></th></tr></thead>
         <tbody>
         {% for p in papers %}
           <tr{% if p.status == "excluded" %} class="opacity-50"{% endif %}>
+            {% if can_reprocess %}<td>{% if p.status != "excluded" and p.status != "processing" and p.status != "queued" %}<input class="form-check-input" type="checkbox" name="papers" value="{{ p.uid }}" aria-label="Select paper {{ p.sequence }}">{% endif %}</td>{% endif %}
             <td><a href="{{ p.get_absolute_url }}"><img class="paper-thumb" src="{% url 'papers:page_image' p.uid p.first_page %}?size=thumb" alt="" loading="lazy"></a></td>
             <td><a class="cell-title" href="{{ p.get_absolute_url }}">Paper {{ p.sequence }}</a>{% if p.is_incomplete %}<div class="cell-sub text-warning-emphasis">Incomplete</div>{% endif %}</td>
-            <td class="small text-truncate" style="max-width:260px">{{ p.source.original_name }}</td>
-            <td class="small nowrap">{{ p.page_label }}</td>
-            <td class="cell-sub nowrap">{{ p.created_at|date:"j M, H:i" }}</td>
+            <td class="tabular nowrap">{% if p.roll_number %}<span class="fw-semibold">{{ p.roll_number }}</span>{% if p.roll_source == "teacher" %} <i class="bi bi-pencil-fill text-primary small" title="Entered by teacher"></i>{% endif %}{% elif p.processed_at and p.status != "failed" %}<span class="text-danger small">Unreadable</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td class="small">{% if p.answers %}{% with c=p.answer_counts %}{{ c.answered }} answered{% if c.blank %} · {{ c.blank }} blank{% endif %}{% if c.multiple %} · {{ c.multiple }} multiple{% endif %}{% if c.uncertain %} · <span class="text-warning-emphasis fw-semibold">{{ c.uncertain }} uncertain</span>{% endif %}{% endwith %}{% elif p.status == "failed" %}<span class="text-danger">{{ p.status_note|truncatechars:60 }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td class="small text-truncate" style="max-width:200px" title="{{ p.source.original_name }} · {{ p.page_label }}">{{ p.source.original_name }}</td>
             <td><span class="pill {{ p.status_css }}">{{ p.get_status_display }}</span></td>
-            <td class="text-end"><a class="btn btn-light btn-sm" href="{{ p.get_absolute_url }}">View</a></td>
+            <td class="text-end nowrap">
+              {% if p.status == "needs_review" or p.status == "failed" %}<a class="btn btn-primary btn-sm" href="{% url 'processing:review' p.uid %}">Review</a>
+              {% elif p.processed_at and p.status == "processed" %}<a class="btn btn-light btn-sm" href="{% url 'processing:review' p.uid %}">Check</a>
+              {% else %}<a class="btn btn-light btn-sm" href="{{ p.get_absolute_url }}">View</a>{% endif %}
+            </td>
           </tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
+    {% if can_reprocess %}
+      <div class="panel-foot d-flex flex-wrap gap-2 align-items-center">
+        <button class="btn btn-light btn-sm" type="submit" data-reprocess disabled><i class="bi bi-arrow-repeat"></i> Reprocess selected</button>
+        <span class="small text-muted">Reprocessing reads the page again; your manual corrections are kept.</span>
+      </div>
+    {% endif %}
+    </form>
   {% endif %}
 </section>
 
@@ -163,4 +222,7 @@
     </section>
   </div>
 </div>
+{% endblock %}
+{% block scripts %}
+{% load static %}<script src="{% static 'js/processing.js' %}" defer></script>
 {% endblock %}

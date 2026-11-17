@@ -17,8 +17,8 @@ NAV_SECTIONS = [
     ]),
     ("Processing", [
         ("Upload Student Papers", "papers:upload_page", "cloud-arrow-up", None),
-        ("Processing Center", None, "cpu", 6),
-        ("Manual Verification", None, "patch-check", 4),
+        ("Processing Center", "processing:center", "cpu", None),
+        ("Manual Verification", "processing:queue", "patch-check", None),
     ]),
     ("Results", [
         ("Class Results", None, "trophy", 6),

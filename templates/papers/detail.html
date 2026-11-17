@@ -55,8 +55,23 @@
     </section>
     <section class="panel">
       <div class="panel-head"><div><h2 class="panel-title">Recognition</h2><p class="panel-sub">Roll number and answers</p></div></div>
-      <div class="panel-body small text-muted">
-        Reading this paper's roll number and answers is added with the processing engine in Milestone 4.
+      <div class="panel-body">
+        {% if paper.processed_at and paper.status != "failed" %}
+          <dl class="kv mb-3">
+            <dt>Roll number</dt><dd>{{ paper.roll_number|default:"Not read" }}{% if paper.roll_source == "teacher" %} <span class="text-muted small">(entered by you)</span>{% endif %}</dd>
+            {% with c=paper.answer_counts %}
+            <dt>Answers</dt><dd>{{ c.answered }} answered · {{ c.blank }} blank · {{ c.multiple }} multiple{% if c.uncertain %} · <span class="text-warning-emphasis">{{ c.uncertain }} uncertain</span>{% endif %}</dd>
+            {% endwith %}
+            <dt>Read</dt><dd>{{ paper.processed_at|date:"j M Y, H:i" }}</dd>
+            {% if paper.reviewed_at %}<dt>Verified</dt><dd>{{ paper.reviewed_at|date:"j M Y, H:i" }}{% if paper.reviewed_by %} by {{ paper.reviewed_by.get_username }}{% endif %}</dd>{% endif %}
+          </dl>
+          <a class="btn btn-primary btn-sm" href="{% url 'processing:review' paper.uid %}"><i class="bi bi-patch-check"></i> {% if paper.status == "needs_review" %}Review{% else %}Check answers{% endif %}</a>
+        {% elif paper.status == "failed" %}
+          <div class="small text-danger mb-2">{{ paper.status_note }}</div>
+          <a class="btn btn-primary btn-sm" href="{% url 'processing:review' paper.uid %}">See options</a>
+        {% else %}
+          <div class="small text-muted">Not processed yet. Start processing from the examination page.</div>
+        {% endif %}
       </div>
       {% if not exam.is_finalized %}
       <div class="panel-foot">

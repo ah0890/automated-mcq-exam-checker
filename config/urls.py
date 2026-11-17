@@ -12,5 +12,6 @@ urlpatterns = [
     path("answer-keys/", include("apps.answerkeys.urls")),
     path("students/", include("apps.students.urls")),
     path("papers/", include("apps.papers.urls")),
+    path("processing/", include("apps.processing.urls")),
     path("", include("apps.core.urls")),
 ]

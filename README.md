@@ -7,9 +7,9 @@ and performance analytics.
 All processing runs locally. No paid services or external AI APIs are used,
 and examination data never leaves the machine.
 
-> **Status:** Milestones 1–3 are complete: OMR engine, sheet layouts,
-> examinations, the Answer Key Library, class lists and paper upload.
-> Processing and results follow milestone by milestone — see
+> **Status:** Milestones 1–4 are complete: sheet layouts, examinations,
+> the Answer Key Library, class lists, paper upload, processing and manual
+> verification. Marking and results follow milestone by milestone — see
 > [CHANGELOG.md](CHANGELOG.md) and [context.md](context.md).
 
 ## Features available now
@@ -24,6 +24,11 @@ and examination data never leaves the machine.
 - **Student papers** — upload a whole class's PDF/JPG/PNG answer sheets from
   the dashboard; PDFs are split per student, duplicates are skipped, and
   originals are kept read-only.
+- **Processing** — roll numbers and answers are read in the background with
+  live progress; interrupted runs resume automatically.
+- **Manual verification** — uncertain marks, unreadable or duplicate roll
+  numbers are reviewed beside magnified crops of the paper; every correction
+  is recorded.
 
 ## How it works
 
@@ -61,6 +66,20 @@ copy .env.example .env          # then edit if needed
 
 Open <http://127.0.0.1:8000> and sign in.
 
+Papers are processed in the background of the running application. Queued
+or interrupted work can also be run from the command line:
+
+```powershell
+.venv\Scripts\python manage.py process_papers
+```
+
+Reading accuracy on sample papers with manual ground truth
+(`samples/ground_truth/<paper>.json`):
+
+```powershell
+.venv\Scripts\python manage.py recognition_report --distortions
+```
+
 ## Data storage
 
 Everything private — the database, uploaded papers, answer keys, results,
@@ -95,6 +114,7 @@ apps/exams/      Sheet layouts and examinations
 apps/answerkeys/ Answer Key Library and key extraction
 apps/students/   Class lists
 apps/papers/     Student paper upload, storage and viewer
+apps/processing/ Background processing, review and corrections
 omr/             Stand-alone OMR engine (no Django dependency)
 templates/       HTML templates
 static/          CSS and vendored Bootstrap 5, Bootstrap Icons, Chart.js

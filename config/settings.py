@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "apps.answerkeys",
     "apps.exams",
     "apps.papers",
+    "apps.processing",
 ]
 
 MIDDLEWARE = [
@@ -100,7 +101,12 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": DATA_DIR / "db.sqlite3",
-        "OPTIONS": {"timeout": 30, "transaction_mode": "IMMEDIATE"},
+        "OPTIONS": {
+            "timeout": 30,
+            "transaction_mode": "IMMEDIATE",
+            # WAL lets the background worker write while pages read.
+            "init_command": "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;",
+        },
     }
 }
 
@@ -152,6 +158,13 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 SESSION_COOKIE_SECURE = env_bool("DJANGO_SECURE_COOKIES", False)
 CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
+
+# --- Processing ------------------------------------------------------------
+# Papers are read in a background thread of the web app; set to false to
+# process synchronously (used by tests) or run `manage.py process_papers`.
+MCQ_BACKGROUND_PROCESSING = env_bool("MCQ_BACKGROUND_PROCESSING", True)
+OMR_MARKED_THRESHOLD = float(os.environ.get("OMR_MARKED_THRESHOLD", "0.45"))
+OMR_EMPTY_THRESHOLD = float(os.environ.get("OMR_EMPTY_THRESHOLD", "0.15"))
 
 # --- OCR -------------------------------------------------------------------
 TESSERACT_CMD = os.environ.get("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe")

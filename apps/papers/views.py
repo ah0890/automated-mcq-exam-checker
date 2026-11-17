@@ -95,8 +95,15 @@ def set_excluded(request, uid):
         paper.status_note = (request.POST.get("reason") or "Excluded by teacher").strip()[:255]
         messages.info(request, f"Paper {paper.sequence} excluded. It stays stored and can be restored.")
     elif paper.status == Paper.Status.EXCLUDED:
-        paper.status = Paper.Status.UPLOADED
+        if paper.processed_at and paper.answers:
+            blocking = any(f.get("blocking") for f in paper.review_flags) or bool(paper.uncertain_questions)
+            paper.status = Paper.Status.NEEDS_REVIEW if blocking and not paper.reviewed_at else Paper.Status.PROCESSED
+        else:
+            paper.status = Paper.Status.UPLOADED
         paper.status_note = ""
         messages.success(request, f"Paper {paper.sequence} restored.")
     paper.save(update_fields=["status", "status_note", "updated_at"])
+    from apps.processing.engine import check_roll_conflicts
+
+    check_roll_conflicts(paper)
     return redirect(paper.get_absolute_url())

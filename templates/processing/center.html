@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Processing Center{% endblock %}
+{% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Processing Center</span>{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Processing</div>
+    <h1 class="page-title">Processing Center</h1>
+    <p class="page-subtitle">Paper processing status for every examination. Processing runs in the background and resumes automatically if the application was closed.</p>
+  </div>
+  <a class="btn btn-primary" href="{% url 'papers:upload_page' %}"><i class="bi bi-upload"></i> Upload papers</a>
+</header>
+
+<section class="panel mb-4">
+  <div class="panel-head"><div><h2 class="panel-title">Examinations with papers</h2></div></div>
+  {% if exams %}
+    <div class="table-responsive"><table class="table-x">
+      <thead><tr><th>Examination</th><th>Papers</th><th>Awaiting</th><th>Read &amp; verified</th><th>Needs review</th><th>Could not read</th><th></th></tr></thead>
+      <tbody>
+      {% for e in exams %}
+        <tr>
+          <td><a class="cell-title" href="{{ e.get_absolute_url }}#processing">{{ e.name }}</a><div class="cell-sub">{{ e.class_section }} · {{ e.exam_date|date:"j M Y" }}</div></td>
+          <td class="tabular">{{ e.total }}</td>
+          <td class="tabular">{{ e.awaiting }}</td>
+          <td class="tabular">{{ e.processed }}</td>
+          <td class="tabular">{% if e.review %}<span class="fw-semibold text-warning-emphasis">{{ e.review }}</span>{% else %}0{% endif %}</td>
+          <td class="tabular">{% if e.failed %}<span class="fw-semibold text-danger">{{ e.failed }}</span>{% else %}0{% endif %}</td>
+          <td class="text-end nowrap">
+            {% if e.review or e.failed %}<a class="btn btn-primary btn-sm" href="{% url 'processing:queue' %}?exam={{ e.uid }}">Review</a>{% endif %}
+            <a class="btn btn-light btn-sm" href="{{ e.get_absolute_url }}#processing">Open</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}
+    <div class="empty"><div class="empty-ic"><i class="bi bi-cpu"></i></div><h3>No papers uploaded yet</h3><p>Upload a class's answer sheets to an examination, then start processing from its page.</p></div>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-head"><div><h2 class="panel-title">Recent processing runs</h2></div></div>
+  {% if jobs %}
+    <div class="table-responsive"><table class="table-x">
+      <thead><tr><th>Examination</th><th>Started</th><th>Papers</th><th>Result</th><th>Duration</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for j in jobs %}
+        <tr>
+          <td><a class="cell-title" href="{{ j.exam.get_absolute_url }}#processing">{{ j.exam.name }}</a>{% if j.is_reprocess %}<div class="cell-sub">Reprocessing</div>{% endif %}</td>
+          <td class="cell-sub nowrap">{{ j.created_at|date:"j M, H:i" }}{% if j.created_by %} · {{ j.created_by.get_username }}{% endif %}</td>
+          <td class="tabular">{{ j.done }} / {{ j.total }}</td>
+          <td class="small">{{ j.succeeded }} read · {{ j.needs_review }} review · {{ j.failed }} failed</td>
+          <td class="tabular small">{% if j.seconds %}{{ j.seconds|floatformat:1 }} s{% else %}—{% endif %}</td>
+          <td><span class="pill {% if j.status == 'done' %}pill-success{% elif j.status == 'cancelled' %}pill-neutral{% else %}pill-warning{% endif %}">{{ j.get_status_display }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}
+    <div class="panel-body small text-muted">No processing runs yet.</div>
+  {% endif %}
+</section>
+{% endblock %}

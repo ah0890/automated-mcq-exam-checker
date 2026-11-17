@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Paper {{ paper.sequence }} could not be read{% endblock %}
+{% block crumbs %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{% url 'processing:queue' %}">Manual Verification</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{{ exam.get_absolute_url }}#papers">{{ exam.name }}</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Paper {{ paper.sequence }}</span>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">{{ exam.name }}</div>
+    <h1 class="page-title">Paper {{ paper.sequence }} could not be read</h1>
+    <p class="page-subtitle">{{ paper.source.original_name }} · {{ paper.page_label }}</p>
+  </div>
+  <span class="pill pill-danger">Processing error</span>
+</header>
+<div class="row g-4">
+  <div class="col-xl-7">
+    <section class="panel">
+      <div class="panel-head"><h2 class="panel-title">Uploaded page</h2></div>
+      <div class="panel-body"><div class="paper-viewer">{% for p in paper.pages %}<img src="{% url 'papers:page_image' paper.uid p %}" alt="Page {{ p }}">{% endfor %}</div></div>
+    </section>
+  </div>
+  <div class="col-xl-5">
+    <section class="panel mb-4">
+      <div class="panel-head"><h2 class="panel-title">What went wrong</h2></div>
+      <div class="panel-body">
+        <div class="flash error mb-3"><i class="ic bi bi-x-octagon-fill"></i><div>{{ paper.status_note }}</div></div>
+        <ul class="small text-muted ps-3 mb-0">
+          {% if paper.error_code == "markers_not_found" %}
+            <li>All four black corner squares must be visible. Rescan the sheet without cropping its corners.</li>
+            <li>If this page is not an answer sheet (for example a cover page), exclude it.</li>
+          {% elif paper.error_code == "template_mismatch" %}
+            <li>The page does not look like this examination's answer sheet. Check it was uploaded to the right examination.</li>
+          {% else %}
+            <li>Check the scan is complete, flat and readable, then rescan and upload it again.</li>
+          {% endif %}
+        </ul>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2 class="panel-title">Options</h2></div>
+      <div class="panel-body d-flex flex-wrap gap-2">
+        <form method="post" action="{% url 'processing:reprocess' exam.uid %}">{% csrf_token %}<input type="hidden" name="papers" value="{{ paper.uid }}"><button class="btn btn-light"><i class="bi bi-arrow-repeat"></i> Try again</button></form>
+        <form method="post" action="{% url 'papers:set_excluded' paper.uid %}">{% csrf_token %}<input type="hidden" name="exclude" value="1"><input type="hidden" name="reason" value="Not readable: {{ paper.error_code }}">
+          <button class="btn btn-light text-danger" onclick="return confirm('Exclude this page from processing and results? It stays stored and can be restored.');"><i class="bi bi-slash-circle"></i> Exclude page</button></form>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
