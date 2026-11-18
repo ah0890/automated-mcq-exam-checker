@@ -15,5 +15,6 @@ urlpatterns = [
     path("sheet-layouts/", views.layout_list, name="layouts"),
     path("sheet-layouts/new/", views.layout_create, name="layout_create"),
     path("sheet-layouts/<uuid:uid>/", views.layout_detail, name="layout_detail"),
+    path("sheet-layouts/<uuid:uid>/delete/", views.layout_delete, name="layout_delete"),
     path("sheet-layouts/<uuid:uid>/preview.png", views.layout_preview, name="layout_preview"),
 ]

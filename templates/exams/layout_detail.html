@@ -11,7 +11,11 @@
     <h1 class="page-title">{{ layout.name }}</h1>
     <p class="page-subtitle">Calibrated from “{{ layout.blank_name }}” on {{ layout.created_at|date:"j M Y" }}.</p>
   </div>
-  <a class="btn btn-primary" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
+  <div class="d-flex gap-2">
+    {% if not exams %}<form method="post" action="{% url 'exams:layout_delete' layout.uid %}">{% csrf_token %}
+      <button class="btn btn-light" data-confirm="Delete the sheet layout “{{ layout.name }}” permanently?"><i class="bi bi-trash3"></i> Delete</button></form>{% endif %}
+    <a class="btn btn-primary" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
+  </div>
 </header>
 <div class="row g-4">
   <div class="col-xl-8">

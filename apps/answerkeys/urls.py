@@ -9,6 +9,7 @@ urlpatterns = [
     path("upload/", views.upload, name="upload"),
     path("manual/", views.manual, name="manual"),
     path("<uuid:uid>/", views.detail, name="detail"),
+    path("<uuid:uid>/delete/", views.delete, name="delete"),
     path("version/<uuid:uid>/verify/", views.verify, name="verify"),
     path("version/<uuid:uid>/revise/", views.revise, name="revise"),
     path("version/<uuid:uid>/export/<str:fmt>/", views.export, name="export"),

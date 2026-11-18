@@ -18,7 +18,7 @@ POST_ONLY = [
     ("papers:set_excluded", ["uuid"]), ("processing:start", ["uuid"]), ("processing:reprocess", ["uuid"]),
     ("processing:cancel", ["uuid"]), ("results:evaluate", ["uuid"]), ("results:finalize", ["uuid"]),
     ("results:reopen", ["uuid"]), ("reports:backup_exam", ["uuid"]), ("reports:backup_full", []),
-    ("reports:restore", []),
+    ("reports:restore", []), ("exams:layout_delete", ["uuid"]), ("answerkeys:delete", ["uuid"]),
 ]
 
 

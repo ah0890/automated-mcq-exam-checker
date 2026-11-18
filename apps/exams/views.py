@@ -129,6 +129,20 @@ def layout_detail(request, uid):
                                                         "exams": layout.examinations.all()})
 
 
+@require_POST
+def layout_delete(request, uid):
+    from .deletion import delete_layout
+
+    layout = get_object_or_404(SheetLayout, uid=uid)
+    try:
+        delete_layout(layout, request.user)
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+        return redirect(layout.get_absolute_url())
+    messages.success(request, f"Sheet layout “{layout.name}” deleted.")
+    return redirect("exams:layouts")
+
+
 def layout_preview(request, uid):
     layout = get_object_or_404(SheetLayout, uid=uid)
     rel = layout.blank_path.rsplit("/", 1)[0] + "/preview.png"

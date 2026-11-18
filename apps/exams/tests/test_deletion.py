@@ -126,3 +126,30 @@ class DeletionTests(pt.ProcessingTests):
         self.delete([other.uid])
         self.add(sheet(), "c.png")
         self.assertEqual(Paper.objects.filter(exam=self.exam).count(), 1)
+
+    # --- sheet layouts and answer keys ---------------------------------------------------
+    def test_layout_in_use_cannot_be_deleted(self):
+        layout = self.exam.sheet_layout
+        self.client.post(reverse("exams:layout_delete", args=[layout.uid]))
+        self.assertTrue(SheetLayout.objects.filter(pk=layout.pk).exists())
+
+    def test_answer_key_in_use_cannot_be_deleted(self):
+        key = self.exam.answer_key_version.key
+        self.client.post(reverse("answerkeys:delete", args=[key.uid]))
+        self.assertTrue(AnswerKey.objects.filter(pk=key.pk).exists())
+
+    def test_unused_layout_and_key_can_be_deleted_afterwards(self):
+        layout, key = self.exam.sheet_layout, self.exam.answer_key_version.key
+        layout_dir = data_path(f"sheet_layouts/{layout.uid.hex}")
+        self.delete([self.exam.uid])  # keeps the layout and key
+        self.assertContains(self.client.get(reverse("exams:layouts")), reverse("exams:layout_delete", args=[layout.uid]))
+        self.assertContains(self.client.get(reverse("answerkeys:library")), reverse("answerkeys:delete", args=[key.uid]))
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.post(reverse("exams:layout_delete", args=[layout.uid]))
+        self.assertRedirects(resp, reverse("exams:layouts"))
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.post(reverse("answerkeys:delete", args=[key.uid]))
+        self.assertRedirects(resp, reverse("answerkeys:library"))
+        self.assertFalse(SheetLayout.objects.exists())
+        self.assertFalse(AnswerKeyVersion.objects.exists())
+        self.assertFalse(layout_dir.exists())

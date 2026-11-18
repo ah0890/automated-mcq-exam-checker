@@ -98,7 +98,9 @@ remove and click *Delete selected* (or use *Delete* on an examination's
 page). The confirmation page lists the papers and results that will be
 removed; type `DELETE` to confirm. Tick *Also delete the answer key and
 answer-sheet layout* to remove those too (only when no other examination uses
-them). Deletion is permanent — download an examination backup first from
+them). Unused sheet layouts and answer keys can also be deleted on their own pages
+(*Sheet Layouts*, *Answer Key Library* — the trash button appears only when
+no examination uses them). Deletion is permanent — download an examination backup first from
 *Reports & backups* if you may need it again. Deletion is refused while
 papers are being checked, and finalized examinations can only be deleted by
 an administrator.

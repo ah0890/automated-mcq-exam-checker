@@ -132,3 +132,26 @@ def delete_examinations(exams, user, *, remove_unused_setup: bool = False) -> De
         summary.folders = folders
         transaction.on_commit(lambda: [_remove_tree(f) for f in folders])
     return summary
+
+
+def delete_layout(layout: SheetLayout, user) -> None:
+    """Permanently delete an answer-sheet layout that no examination uses."""
+    with transaction.atomic():
+        if not _layout_unused(layout):
+            raise ValidationError("This sheet layout is used by an examination. Delete the examination first.")
+        folder = f"sheet_layouts/{layout.uid.hex}"
+        log.info("Sheet layout %s deleted by %s", layout.uid, user.get_username())
+        layout.delete()
+        transaction.on_commit(lambda: _remove_tree(folder))
+
+
+def delete_answer_key(key, user) -> None:
+    """Permanently delete an answer key (all versions) that no examination or result uses."""
+    with transaction.atomic():
+        if not _key_unused(key):
+            raise ValidationError("This answer key is used by an examination or its results. "
+                                  "Delete the examination first.")
+        folder = f"answer_key_library/{key.uid.hex}"
+        log.info("Answer key %s deleted by %s", key.uid, user.get_username())
+        key.delete()  # cascades to its versions
+        transaction.on_commit(lambda: _remove_tree(folder))

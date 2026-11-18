@@ -23,7 +23,9 @@
           <td>{% if l.roll_digits %}{{ l.roll_digits }} digits{% else %}<span class="text-muted">None</span>{% endif %}</td>
           <td class="tabular">{{ l.examinations.count }}</td>
           <td class="cell-sub">{{ l.created_at|date:"j M Y" }}</td>
-          <td class="text-end"><a class="btn btn-light btn-sm" href="{{ l.get_absolute_url }}">View</a></td>
+          <td class="text-end nowrap"><a class="btn btn-light btn-sm" href="{{ l.get_absolute_url }}">View</a>
+            {% if not l.examinations.exists %}<form class="d-inline" method="post" action="{% url 'exams:layout_delete' l.uid %}">{% csrf_token %}
+              <button class="btn btn-light btn-sm" title="Delete this layout" aria-label="Delete {{ l.name }}" data-confirm="Delete the sheet layout “{{ l.name }}” permanently?"><i class="bi bi-trash3"></i></button></form>{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>

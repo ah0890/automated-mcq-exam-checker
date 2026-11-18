@@ -12,6 +12,8 @@
     <p class="page-subtitle">Version {{ selected.number }} · {{ selected.num_questions }} questions · options {{ selected.option_labels|make_list|join:", " }}</p>
   </div>
   <div class="d-flex gap-2 flex-wrap">
+    {% if not all_exams %}<form method="post" action="{% url 'answerkeys:delete' key.uid %}">{% csrf_token %}
+      <button class="btn btn-light" data-confirm="Delete the answer key “{{ key.title }}” and all its versions permanently?"><i class="bi bi-trash3"></i> Delete</button></form>{% endif %}
     {% if selected.is_verified %}
       <div class="dropdown">
         <button class="btn btn-light dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button>

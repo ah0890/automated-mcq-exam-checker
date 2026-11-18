@@ -159,6 +159,20 @@ def detail(request, uid):
 
 
 @require_POST
+def delete(request, uid):
+    from apps.exams.deletion import delete_answer_key
+
+    key = get_object_or_404(AnswerKey, uid=uid)
+    try:
+        delete_answer_key(key, request.user)
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+        return redirect(key.get_absolute_url())
+    messages.success(request, f"Answer key “{key.title}” deleted.")
+    return redirect("answerkeys:library")
+
+
+@require_POST
 def revise(request, uid):
     version = get_object_or_404(AnswerKeyVersion, uid=uid)
     draft = services.start_revision(version, request.user)

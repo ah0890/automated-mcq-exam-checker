@@ -42,12 +42,14 @@
             </td>
             <td class="tabular">{{ row.key.exam_count }} exam{{ row.key.exam_count|pluralize }}</td>
             <td class="cell-sub">{{ row.key.updated_at|date:"j M Y" }}</td>
-            <td class="text-end">
+            <td class="text-end nowrap">
               {% if row.draft %}
                 <a class="btn btn-primary btn-sm" href="{% url 'answerkeys:verify' row.draft.uid %}">Verify</a>
               {% else %}
                 <a class="btn btn-light btn-sm" href="{{ row.key.get_absolute_url }}">Open</a>
               {% endif %}
+              {% if not row.key.exam_count %}<form class="d-inline" method="post" action="{% url 'answerkeys:delete' row.key.uid %}">{% csrf_token %}
+                <button class="btn btn-light btn-sm" title="Delete this answer key" aria-label="Delete {{ row.key.title }}" data-confirm="Delete the answer key “{{ row.key.title }}” and all its versions permanently?"><i class="bi bi-trash3"></i></button></form>{% endif %}
             </td>
           </tr>
         {% endfor %}

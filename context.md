@@ -41,7 +41,10 @@ versions) and layout only if nothing else references them. Blocked while a
 job is queued/running; finalized exams superuser-only. Note: the
 "papers are never deleted" rule still holds inside an examination — whole
 examination deletion is the only way records disappear. Draft keys created
-by an abandoned quick setup are not linked to the exam and are not removed.
+by an abandoned quick setup are not linked to the exam and are not removed
+automatically. Unused layouts/keys can be deleted on their own:
+`exams:layout_delete`, `answerkeys:delete` (POST, `delete_layout` /
+`delete_answer_key` in `apps/exams/deletion.py`, refused when in use).
 
 Recommended next steps (not started): measure accuracy on real scanned or
 photographed sheets and tune `OMR_MARKED_THRESHOLD` / `OMR_EMPTY_THRESHOLD`;
@@ -242,7 +245,7 @@ used to "correct" what was read.
 
 ## Tests actually performed
 
-- `manage.py test`: **181 tests, all passing** (2026-11-18; includes the
+- `manage.py test`: **184 tests, all passing** (2026-11-18; includes the
   inherited processing tests re-run by the deletion test class).
 - Real sample student sheet: OMR output matches manual ground truth exactly
   (roll number; 46 single answers; 1 multiple; 2 blanks; 1 faint mark →

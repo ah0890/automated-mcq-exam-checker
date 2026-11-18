@@ -15,7 +15,10 @@
 - Safeguards: refused while papers are being checked; finalized examinations
   only by an administrator; database rows removed in one transaction and files
   only after it commits.
-- 11 new tests.
+- **Delete unused sheet layouts and answer keys** from Sheet Layouts and the
+  Answer Key Library (list rows and detail pages). Refused while any
+  examination or result uses them.
+- 14 new tests.
 
 ## Dashboard-first workflow (2026-11-18)
 
