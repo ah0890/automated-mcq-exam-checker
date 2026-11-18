@@ -52,6 +52,32 @@
     sync();
   });
 
+  // <input type=checkbox data-select-all="name"> ticks every checkbox named "name";
+  // <button data-needs-selection="name"> is enabled only while at least one is ticked.
+  var syncSelection = function (name) {
+    var boxes = document.querySelectorAll('input[type=checkbox][name="' + name + '"]');
+    var ticked = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length;
+    document.querySelectorAll('[data-needs-selection="' + name + '"]').forEach(function (btn) { btn.disabled = ticked === 0; });
+    document.querySelectorAll('[data-select-all="' + name + '"]').forEach(function (all) {
+      all.checked = boxes.length > 0 && ticked === boxes.length;
+      all.indeterminate = ticked > 0 && ticked < boxes.length;
+    });
+  };
+  document.querySelectorAll("[data-select-all]").forEach(function (all) {
+    var name = all.dataset.selectAll;
+    all.addEventListener("change", function () {
+      document.querySelectorAll('input[type=checkbox][name="' + name + '"]').forEach(function (b) { b.checked = all.checked; });
+      syncSelection(name);
+    });
+  });
+  document.querySelectorAll("[data-needs-selection]").forEach(function (btn) {
+    var name = btn.dataset.needsSelection;
+    document.querySelectorAll('input[type=checkbox][name="' + name + '"]').forEach(function (b) {
+      b.addEventListener("change", function () { syncSelection(name); });
+    });
+    syncSelection(name);
+  });
+
   // Drop zones: show the chosen file name(s).
   document.querySelectorAll(".dropzone").forEach(function (dz) {
     var input = dz.querySelector("input[type=file]"), out = dz.querySelector(".dz-file");

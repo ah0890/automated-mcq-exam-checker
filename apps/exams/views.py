@@ -170,3 +170,61 @@ def quick_setup(request):
                                       "“Verify & save key” — then you can upload the students' papers.")
             return redirect("answerkeys:verify", version.uid)
     return render(request, "exams/quick_setup.html", {"form": form})
+
+
+# --- permanent deletion -------------------------------------------------------------------
+
+CONFIRM_WORD = "DELETE"
+
+
+def exam_delete(request):
+    """Confirm and permanently delete one or more examinations (uids from ?uid=… or the form)."""
+    from . import deletion
+
+    source = request.POST if request.method == "POST" else request.GET
+    uids = [u for u in source.getlist("uid") if _is_uuid(u)]
+    exams = list(Examination.objects.filter(uid__in=uids).select_related("sheet_layout", "answer_key_version__key"))
+    if not exams:
+        messages.info(request, "Select at least one examination to delete.")
+        return redirect("exams:list")
+
+    rows = [{"exam": e, "impact": deletion.impact(e), "blockers": deletion.deletion_blockers(e, request.user)}
+            for e in exams]
+    blocked = any(r["blockers"] for r in rows)
+    error = ""
+    if request.method == "POST" and not blocked:
+        if (request.POST.get("confirm") or "").strip().upper() != CONFIRM_WORD:
+            error = f"Type {CONFIRM_WORD} to confirm."
+        else:
+            try:
+                result = deletion.delete_examinations(exams, request.user,
+                                                      remove_unused_setup=bool(request.POST.get("remove_setup")))
+            except ValidationError as exc:
+                messages.error(request, " ".join(exc.messages))
+                return redirect("exams:list")
+            extra = []
+            if result.keys_removed:
+                extra.append(f"{result.keys_removed} answer key{'s' if result.keys_removed != 1 else ''}")
+            if result.layouts_removed:
+                extra.append(f"{result.layouts_removed} sheet layout{'s' if result.layouts_removed != 1 else ''}")
+            n = result.examinations
+            messages.success(request, f"Deleted {n} examination{'s' if n != 1 else ''} with {result.papers} "
+                                      f"paper{'s' if result.papers != 1 else ''} and {result.results} "
+                                      f"result{'s' if result.results != 1 else ''}"
+                                      f"{' (also removed ' + ' and '.join(extra) + ')' if extra else ''}.")
+            return redirect("exams:list")
+    return render(request, "exams/delete.html", {
+        "rows": rows, "blocked": blocked, "error": error, "confirm_word": CONFIRM_WORD,
+        "totals": {k: sum(r["impact"][k] for r in rows) for k in ("papers", "files", "results")},
+        "remove_setup": bool(request.POST.get("remove_setup")),
+    })
+
+
+def _is_uuid(value) -> bool:
+    import uuid
+
+    try:
+        uuid.UUID(str(value))
+    except ValueError:
+        return False
+    return True

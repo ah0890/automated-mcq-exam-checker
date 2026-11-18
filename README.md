@@ -35,6 +35,9 @@ used, and examination data never leaves the machine.
   report; PDF student result cards and examination summary.
 - **Backups** — examination backup and restore (verified by SHA-256) and full
   application backups.
+- **Delete old examinations** — remove one or several examinations with all
+  their papers, results and files (optionally their unused answer key and
+  sheet layout) to start with a clean history.
 
 ## How answer sheets are read
 
@@ -90,6 +93,16 @@ Open <http://127.0.0.1:8000> and sign in.
 The individual pages (Sheet Layouts, Answer Key Library, Examinations,
 Processing Center) remain available for finer control.
 
+**Clearing old examinations** — on *Examinations*, tick the examinations to
+remove and click *Delete selected* (or use *Delete* on an examination's
+page). The confirmation page lists the papers and results that will be
+removed; type `DELETE` to confirm. Tick *Also delete the answer key and
+answer-sheet layout* to remove those too (only when no other examination uses
+them). Deletion is permanent — download an examination backup first from
+*Reports & backups* if you may need it again. Deletion is refused while
+papers are being checked, and finalized examinations can only be deleted by
+an administrator.
+
 ## Commands
 
 ```powershell
@@ -111,8 +124,8 @@ answers.
 ## Security
 
 - Sign-in required for every page; Django administration for user accounts.
-  Finalized results can be reopened, and full backups/restores performed,
-  only by administrators.
+  Finalized results can be reopened or deleted, and full backups/restores
+  performed, only by administrators.
 - CSRF protection; state-changing actions accept POST only.
 - Content-Security-Policy (`script-src 'self'`, no inline scripts),
   `X-Frame-Options: DENY`, `nosniff`, same-origin referrer policy.

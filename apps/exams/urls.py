@@ -8,6 +8,7 @@ urlpatterns = [
     path("", views.exam_list, name="list"),
     path("new/", views.exam_create, name="create"),
     path("quick-setup/", views.quick_setup, name="quick_setup"),
+    path("delete/", views.exam_delete, name="delete"),
     path("<uuid:uid>/", views.exam_detail, name="detail"),
     path("<uuid:uid>/edit/", views.exam_edit, name="edit"),
     path("<uuid:uid>/answer-key/", views.exam_assign_key, name="assign_key"),

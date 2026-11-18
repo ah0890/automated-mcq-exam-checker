@@ -1,5 +1,22 @@
 # Changelog
 
+## Delete examinations (2026-11-18)
+
+### Added
+
+- **Delete examinations** permanently, one at a time (Delete on the
+  examination page) or several at once (checkboxes and *Delete selected* on
+  Examinations). Removes papers, original and processed files, readings,
+  corrections, results, evaluation history, processing jobs and finalization
+  events. A confirmation page shows what will be removed and requires typing
+  `DELETE`.
+- Optional removal of the examination's answer key and sheet layout when no
+  other examination uses them.
+- Safeguards: refused while papers are being checked; finalized examinations
+  only by an administrator; database rows removed in one transaction and files
+  only after it commits.
+- 11 new tests.
+
 ## Dashboard-first workflow (2026-11-18)
 
 ### Added

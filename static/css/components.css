@@ -19,6 +19,7 @@
 .toolbar { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; padding: 1rem 1.35rem; border-bottom: 1px solid var(--line-2); }
 .toolbar .input-icon { flex: 1; min-width: 220px; max-width: 360px; }
 .toolbar .form-control, .toolbar .form-select { padding-top: .5rem; padding-bottom: .5rem; }
+.col-check { width: 1%; padding-right: 0 !important; }
 
 /* ---------- Empty states ---------- */
 .empty { text-align: center; padding: 3.5rem 1.5rem; }

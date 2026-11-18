@@ -27,6 +27,22 @@ status), and a results panel on the dashboard (`?exam=<uid>` focuses an
 examination). The application is feature-
 complete for the brief. Final report: `docs/final-report.md`.
 
+Follow-up (2026-11-18, user request "clean all the data in the history"):
+permanent deletion of examinations — `apps/exams/deletion.py`
+(`delete_examinations`, `deletion_blockers`, `impact`), view
+`exams:delete` (GET `?uid=…&uid=…` = confirmation page, POST with
+`confirm=DELETE` deletes), checkboxes + "Delete selected" on the
+Examinations list, Delete button on the workspace. Deletes children first
+(relations are PROTECT), then the exam, all in one transaction; files under
+`data/examinations/<uid>/` (and optionally `sheet_layouts/<uid>/`,
+`answer_key_library/<uid>/`) are removed via `transaction.on_commit`.
+Optional `remove_setup` deletes the key (whole AnswerKey incl. verified
+versions) and layout only if nothing else references them. Blocked while a
+job is queued/running; finalized exams superuser-only. Note: the
+"papers are never deleted" rule still holds inside an examination — whole
+examination deletion is the only way records disappear. Draft keys created
+by an abandoned quick setup are not linked to the exam and are not removed.
+
 Recommended next steps (not started): measure accuracy on real scanned or
 photographed sheets and tune `OMR_MARKED_THRESHOLD` / `OMR_EMPTY_THRESHOLD`;
 optional zero floor for negative totals; optional OCR of the printed exam ID.
@@ -226,7 +242,8 @@ used to "correct" what was read.
 
 ## Tests actually performed
 
-- `manage.py test`: **153 tests, all passing** (2026-11-18).
+- `manage.py test`: **181 tests, all passing** (2026-11-18; includes the
+  inherited processing tests re-run by the deletion test class).
 - Real sample student sheet: OMR output matches manual ground truth exactly
   (roll number; 46 single answers; 1 multiple; 2 blanks; 1 faint mark →
   manual verification), also under 9 artificial distortions.

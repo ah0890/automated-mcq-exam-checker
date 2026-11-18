@@ -18,15 +18,18 @@
       <div class="input-icon"><i class="bi bi-search"></i>
         <input class="form-control" type="search" name="q" value="{{ query }}" placeholder="Search by name, subject, class or exam ID"></div>
       {% if query %}<a class="btn btn-light" href="{% url 'exams:list' %}">Clear</a>{% endif %}
+      {% if exams %}<button class="btn btn-light ms-auto" type="submit" form="bulkDelete" data-needs-selection="uid"><i class="bi bi-trash3"></i> Delete selected</button>{% endif %}
     </form>
+    <form id="bulkDelete" method="get" action="{% url 'exams:delete' %}"></form>
   {% endif %}
   {% if exams %}
     <div class="table-responsive">
       <table class="table-x">
-        <thead><tr><th>Examination</th><th>Class</th><th>Date</th><th>Questions</th><th>Answer key</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th class="col-check"><input class="form-check-input" type="checkbox" data-select-all="uid" aria-label="Select all examinations"></th><th>Examination</th><th>Class</th><th>Date</th><th>Questions</th><th>Answer key</th><th>Status</th><th></th></tr></thead>
         <tbody>
         {% for e in exams %}
           <tr>
+            <td class="col-check"><input class="form-check-input" type="checkbox" name="uid" value="{{ e.uid }}" form="bulkDelete" aria-label="Select {{ e.name }}"></td>
             <td><a class="cell-title" href="{{ e.get_absolute_url }}">{{ e.name }}</a>
                 <div class="cell-sub">{{ e.subject }}{% if e.exam_code %} · {{ e.exam_code }}{% endif %}</div></td>
             <td class="nowrap">{{ e.class_section }}</td>

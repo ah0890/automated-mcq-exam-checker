@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}Delete examination{{ rows|length|pluralize }}{% endblock %}
+{% block crumbs %}
+<span class="sep"><i class="bi bi-chevron-right"></i></span><a href="{% url 'exams:list' %}">Examinations</a>
+<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">Delete</span>
+{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Examinations</div>
+    <h1 class="page-title">Delete {% if rows|length == 1 %}“{{ rows.0.exam.name }}”{% else %}{{ rows|length }} examinations{% endif %}</h1>
+    <p class="page-subtitle">This permanently removes the examination{{ rows|length|pluralize }} and every record and file belonging to {% if rows|length == 1 %}it{% else %}them{% endif %}. It cannot be undone.</p>
+  </div>
+</header>
+
+<section class="panel">
+  <div class="panel-head"><div><h2 class="panel-title">What will be deleted</h2>
+    <p class="panel-sub">{{ totals.papers }} paper{{ totals.papers|pluralize }} from {{ totals.files }} uploaded file{{ totals.files|pluralize }}, {{ totals.results }} result{{ totals.results|pluralize }}, plus readings, corrections, processing history and evaluation history.</p></div></div>
+  <div class="table-responsive">
+    <table class="table-x">
+      <thead><tr><th>Examination</th><th>Class</th><th>Date</th><th class="text-end">Papers</th><th class="text-end">Results</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr>
+          <td><a class="cell-title" href="{{ r.exam.get_absolute_url }}">{{ r.exam.name }}</a>
+            <div class="cell-sub">{{ r.exam.subject }}{% if r.exam.exam_code %} · {{ r.exam.exam_code }}{% endif %}</div>
+            {% for b in r.blockers %}<div class="small text-danger mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ b }}</div>{% endfor %}</td>
+          <td class="nowrap">{{ r.exam.class_section }}</td>
+          <td class="tabular nowrap">{{ r.exam.exam_date|date:"j M Y" }}</td>
+          <td class="tabular text-end">{{ r.impact.papers }}</td>
+          <td class="tabular text-end">{{ r.impact.results }}</td>
+          <td>{% stage_pill r.exam %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-body">
+    {% if blocked %}
+      <p class="mb-3">Resolve the issue{{ rows|length|pluralize }} shown above, or remove {% if rows|length == 1 %}this examination{% else %}the blocked examinations{% endif %} from the selection.</p>
+      <a class="btn btn-light" href="{% url 'exams:list' %}">Back to examinations</a>
+    {% else %}
+      <p class="small text-muted mb-3"><i class="bi bi-archive me-1"></i>Want a copy first? Download an examination backup from <a href="{% url 'reports:index' %}">Reports &amp; backups</a> — it can be restored later.</p>
+      <form method="post" action="{% url 'exams:delete' %}">{% csrf_token %}
+        {% for r in rows %}<input type="hidden" name="uid" value="{{ r.exam.uid }}">{% endfor %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="remove_setup" value="1" id="remove_setup"{% if remove_setup %} checked{% endif %}>
+          <label class="form-check-label" for="remove_setup">Also delete the answer key and answer-sheet layout
+            <span class="d-block small text-muted">Only those no other examination uses. Leave unticked to reuse them for future examinations.</span></label>
+        </div>
+        <div class="mb-3" style="max-width:340px">
+          <label class="form-label" for="confirm">Type <strong>{{ confirm_word }}</strong> to confirm</label>
+          <input class="form-control{% if error %} is-invalid{% endif %}" id="confirm" name="confirm" autocomplete="off" required>
+          {% if error %}<div class="invalid-feedback">{{ error }}</div>{% endif %}
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-danger" type="submit"><i class="bi bi-trash3"></i> Delete permanently</button>
+          <a class="btn btn-light" href="{% url 'exams:list' %}">Cancel</a>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
