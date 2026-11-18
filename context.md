@@ -295,7 +295,17 @@ used to "correct" what was read.
 2. Not yet done (recorded honestly): OCR cross-check of the handwritten
    roll-number boxes and of the printed exam/template ID (pages of the wrong
    sheet design are already rejected by the template-match score).
-2. Ask the user for more completed sheets (ideally real scans) and a class list.
+3. Ask the user for more completed sheets (ideally real scans) and a class list.
+
+## Session handoff (2026-11-18)
+
+- State at end of session: working tree clean, `main` in sync with
+  `origin/main`; last feature commit `c3f612e` (dashboard-first workflow),
+  153 tests passing.
+- No work in progress. Next session: start with "Pending work / next steps"
+  above — real-sheet accuracy measurement needs sheets from the user.
+- To run locally: activate `.venv`, `python manage.py runserver`, sign in,
+  start from the dashboard (Quick setup → upload papers → results).
 
 ## Git
 
