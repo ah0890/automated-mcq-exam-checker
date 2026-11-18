@@ -182,3 +182,29 @@ class ResultTests(pt.ProcessingTests):
 for _name in [n for n in dir(pt.ProcessingTests) if n.startswith("test_")]:
     if _name not in ResultTests.__dict__:
         setattr(ResultTests, _name, None)
+
+
+@override_settings(MCQ_BACKGROUND_PROCESSING=False)
+class DuplicateRollResolution(pt.ProcessingTests):
+    def test_paper_freed_from_duplicate_roll_is_marked(self):
+        a = self.add(pt.sheet(roll="5555", fill_level={5: 185}), "a.png")  # faint Q5 → no result yet
+        b = self.add(pt.sheet(roll="5555", answers=answers_with_wrong(2)), "b.png")
+        self.process()
+        # Teacher tries to confirm A first: blocked by the duplicate roll number.
+        self.client.post(reverse("processing:review", args=[a.uid]),
+                         {"action": "confirm", "roll_number": "5555", "q_5": "B"})
+        a.refresh_from_db()
+        self.assertEqual(a.status, Paper.Status.NEEDS_REVIEW)
+        self.assertFalse(Result.objects.filter(paper=a).exists())
+        # Correcting B's roll number resolves the conflict for both papers.
+        self.client.post(reverse("processing:review", args=[b.uid]), {"action": "confirm", "roll_number": "5556"})
+        a.refresh_from_db()
+        self.assertEqual(a.status, Paper.Status.PROCESSED)
+        self.assertEqual(stale_reasons(Result.objects.get(paper=a)), [])
+        self.assertEqual(Result.objects.get(paper=a).rank, 1)
+        self.assertEqual(Result.objects.get(paper=b).rank, 2)
+
+
+for _name in [n for n in dir(pt.ProcessingTests) if n.startswith("test_")]:
+    if _name not in DuplicateRollResolution.__dict__:
+        setattr(DuplicateRollResolution, _name, None)

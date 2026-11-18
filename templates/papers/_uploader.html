@@ -6,7 +6,11 @@ upload one by one with progress, and one failed file never stops the batch.
 {% endcomment %}
 <form class="uploader" method="post" enctype="multipart/form-data"
       action="{% if fixed_exam %}{% url 'papers:upload' fixed_exam.uid %}{% endif %}" data-uploader
-      {% if fixed_exam %}data-exam-url="{{ fixed_exam.get_absolute_url }}"{% endif %}>
+      {% if after_url %}data-after-url="{{ after_url }}"{% endif %}
+      {% if fixed_exam %}data-exam-url="{{ fixed_exam.get_absolute_url }}" data-exam-uid="{{ fixed_exam.uid }}"
+        data-start-url="{% url 'processing:start' fixed_exam.uid %}" data-status-url="{% url 'processing:status' fixed_exam.uid %}"
+        data-results-url="{% url 'results:class' fixed_exam.uid %}" data-review-url="{% url 'processing:queue' %}?exam={{ fixed_exam.uid }}"
+        {% if fixed_exam.answer_key_version_id %}data-auto-check="1"{% endif %}{% endif %}>
   {% csrf_token %}
   {% if not fixed_exam %}
     <div class="mb-3">
@@ -14,7 +18,10 @@ upload one by one with progress, and one failed file never stops the batch.
       <select class="form-select" id="up-exam-{{ uploader_id|default:'x' }}" data-exam-select required>
         <option value="">Select the examination these papers belong to</option>
         {% for e in exams %}
-          <option value="{% url 'papers:upload' e.uid %}" data-exam-url="{{ e.get_absolute_url }}"
+          <option value="{% url 'papers:upload' e.uid %}" data-exam-url="{{ e.get_absolute_url }}" data-exam-uid="{{ e.uid }}"
+                  data-start-url="{% url 'processing:start' e.uid %}" data-status-url="{% url 'processing:status' e.uid %}"
+                  data-results-url="{% url 'results:class' e.uid %}" data-review-url="{% url 'processing:queue' %}?exam={{ e.uid }}"
+                  {% if e.answer_key_version_id %}data-auto-check="1"{% endif %}
                   {% if selected == e.uid|stringformat:"s" or exams|length == 1 %}selected{% endif %}>
             {{ e.name }} — {{ e.class_section }} · {{ e.exam_date|date:"j M Y" }}{% if not e.answer_key_version_id %} (no answer key yet){% endif %}
           </option>
@@ -41,8 +48,8 @@ upload one by one with progress, and one failed file never stops the batch.
         <option value="4">4 pages</option>
       </select>
     </div>
-    <div class="flex-grow-1 small text-muted">A PDF containing the whole class is split into one paper per student. Duplicate files and pages already uploaded are skipped automatically.</div>
-    <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> Upload papers</button>
+    <div class="flex-grow-1 small text-muted">Papers are <strong>checked automatically</strong> after upload. A PDF with the whole class is split into one paper per student; duplicates are skipped.</div>
+    <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> Upload &amp; check</button>
   </div>
 
   <div class="upload-progress mt-4" hidden>
@@ -52,8 +59,18 @@ upload one by one with progress, and one failed file never stops the batch.
     </div>
     <div class="progress mb-3" style="height:6px"><div class="progress-bar" data-total-bar style="width:0%"></div></div>
     <ul class="upload-list" data-list></ul>
-    <div class="d-flex gap-2 mt-3" data-done hidden>
-      <a class="btn btn-primary" data-view-link href="#"><i class="bi bi-files"></i> View uploaded papers</a>
+    <div class="check-progress mt-3" data-check hidden>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="fw-semibold small" data-check-label><span class="spinner-border spinner-border-sm text-primary me-1"></span> Checking papers…</div>
+        <div class="small text-muted tabular" data-check-count></div>
+      </div>
+      <div class="progress" style="height:8px"><div class="progress-bar progress-bar-striped progress-bar-animated" data-check-bar style="width:0%"></div></div>
+      <div class="small mt-2" data-check-result></div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-3" data-done hidden>
+      <a class="btn btn-primary" data-results-link href="#"><i class="bi bi-trophy"></i> Show results</a>
+      <a class="btn btn-primary" data-review-link href="#" hidden><i class="bi bi-patch-check"></i> Review</a>
+      <a class="btn btn-light" data-view-link href="#"><i class="bi bi-files"></i> View papers</a>
       <button class="btn btn-light" type="button" data-reset>Upload more</button>
     </div>
   </div>

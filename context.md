@@ -18,7 +18,13 @@ client product (polished SaaS-quality UI).
 
 ## Current milestone
 
-**All eight milestones complete (2026-11-18).** The application is feature-
+**All eight milestones complete (2026-11-18).** Follow-up (same day, user
+request): dashboard-first workflow — quick setup (`exams:quick_setup`,
+`apps/exams/quick_setup.py`, roll grid auto-detected via
+`omr.template.AUTO_ROLL`), automatic checking after dashboard upload
+(`static/js/uploader.js` calls `processing:start` as JSON and polls
+status), and a results panel on the dashboard (`?exam=<uid>` focuses an
+examination). The application is feature-
 complete for the brief. Final report: `docs/final-report.md`.
 
 Recommended next steps (not started): measure accuracy on real scanned or
@@ -220,7 +226,7 @@ used to "correct" what was read.
 
 ## Tests actually performed
 
-- `manage.py test`: **149 tests, all passing** (2026-11-18).
+- `manage.py test`: **153 tests, all passing** (2026-11-18).
 - Real sample student sheet: OMR output matches manual ground truth exactly
   (roll number; 46 single answers; 1 multiple; 2 blanks; 1 faint mark →
   manual verification), also under 9 artificial distortions.

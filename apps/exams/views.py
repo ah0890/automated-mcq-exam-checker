@@ -12,7 +12,7 @@ from apps.papers.services import paper_stats
 from apps.results import services as result_services
 
 from . import services
-from .forms import AssignKeyForm, ExaminationForm, SheetLayoutForm
+from .forms import AssignKeyForm, ExaminationForm, QuickSetupForm, SheetLayoutForm
 from .models import Examination, SheetLayout
 
 
@@ -135,3 +135,38 @@ def layout_preview(request, uid):
     if not data_path(rel).exists():
         raise Http404
     return image_file_response(rel)
+
+
+# --- one-step setup from the dashboard ----------------------------------------------------
+
+PENDING_EXAM = "quick_setup_exam"
+
+
+def quick_setup(request):
+    from django.utils import timezone
+
+    from .quick_setup import quick_setup as run_quick_setup
+
+    form = QuickSetupForm(request.POST or None, request.FILES or None,
+                          initial={"exam_date": timezone.localdate()})
+    if request.method == "POST" and form.is_valid():
+        d = form.cleaned_data
+        try:
+            exam, version = run_quick_setup(
+                name=d["name"], subject=d["subject"], class_section=d["class_section"], exam_date=d["exam_date"],
+                marks_per_question=d["marks_per_question"], negative_marking=d["negative_marking"],
+                negative_marks=d["negative_marks"], passing_percentage=d["passing_percentage"],
+                multiple_mark_policy=d["multiple_mark_policy"], option_labels=d["option_labels"],
+                blank_sheet=d["blank_sheet"], answer_key=d["answer_key"], user=request.user)
+        except ValidationError as exc:
+            form.add_error(None, " ".join(exc.messages))
+        else:
+            request.session[PENDING_EXAM] = str(exam.uid)
+            layout = exam.sheet_layout
+            messages.success(request, f"Answer sheet ready: {layout.capacity} questions"
+                                      f"{f', {layout.roll_digits}-digit roll number' if layout.roll_digits else ''}. "
+                                      f"Answer key read: {version.extraction.get('found', 0)} of "
+                                      f"{version.num_questions} answers. Check the answers below and click "
+                                      "“Verify & save key” — then you can upload the students' papers.")
+            return redirect("answerkeys:verify", version.uid)
+    return render(request, "exams/quick_setup.html", {"form": form})

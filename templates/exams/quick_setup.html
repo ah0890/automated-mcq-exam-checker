@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Set up an examination{% endblock %}
+{% block crumbs %}<span class="sep"><i class="bi bi-chevron-right"></i></span><span class="current">New examination</span>{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <div class="page-eyebrow">Quick setup</div>
+    <h1 class="page-title">Set up an examination</h1>
+    <p class="page-subtitle">Upload the blank answer sheet and the official answer key. The sheet is calibrated automatically and the key is read; you then confirm the key once and upload the students' papers.</p>
+  </div>
+</header>
+
+<form method="post" enctype="multipart/form-data" novalidate class="row g-4"
+      data-loading="Preparing the examination…" data-loading-sub="Calibrating the answer sheet and reading the answer key.">
+  {% csrf_token %}
+  <div class="col-xl-8">
+    <section class="panel">
+      {% if form.non_field_errors %}<div class="p-3 pb-0">{% for e in form.non_field_errors %}<div class="flash error"><i class="ic bi bi-x-octagon-fill"></i><div>{{ e }}</div></div>{% endfor %}</div>{% endif %}
+
+      <div class="form-section">
+        <div class="form-section-title"><span class="step-dot d-inline-grid me-2" style="width:26px;height:26px;margin:0;font-size:.8rem">1</span>Files</div>
+        <div class="form-section-sub">PDF, JPG or PNG for the blank sheet. The key can be PDF, Excel, Word, CSV, JSON or an image.</div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Blank (unsolved) answer sheet</label>
+            <label class="dropzone py-4{% if form.blank_sheet.errors %} is-invalid{% endif %}">
+              <input type="file" name="blank_sheet" accept=".pdf,.jpg,.jpeg,.png" required>
+              <div class="dz-ic"><i class="bi bi-file-earmark-image"></i></div>
+              <div class="dz-title small">Choose the blank sheet</div>
+              <div class="dz-file"></div>
+            </label>
+            {% for e in form.blank_sheet.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Official answer key</label>
+            <label class="dropzone py-4{% if form.answer_key.errors %} is-invalid{% endif %}">
+              <input type="file" name="answer_key" accept=".pdf,.xlsx,.docx,.csv,.json,.jpg,.jpeg,.png" required>
+              <div class="dz-ic"><i class="bi bi-key"></i></div>
+              <div class="dz-title small">Choose the answer key</div>
+              <div class="dz-file"></div>
+            </label>
+            {% for e in form.answer_key.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title"><span class="step-dot d-inline-grid me-2" style="width:26px;height:26px;margin:0;font-size:.8rem">2</span>Examination details</div>
+        <div class="form-section-sub">Shown on results and printed result cards.</div>
+        <div class="row">
+          <div class="col-md-7">{% include "components/field.html" with field=form.name %}</div>
+          <div class="col-md-5">{% include "components/field.html" with field=form.subject %}</div>
+          <div class="col-md-6">{% include "components/field.html" with field=form.class_section %}</div>
+          <div class="col-md-6">{% include "components/field.html" with field=form.exam_date %}</div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="form-section-title"><span class="step-dot d-inline-grid me-2" style="width:26px;height:26px;margin:0;font-size:.8rem">3</span>Marking rules</div>
+        <div class="form-section-sub">The number of questions is taken from the answer key.</div>
+        <div class="row">
+          <div class="col-md-4">{% include "components/field.html" with field=form.option_labels %}</div>
+          <div class="col-md-4">{% include "components/field.html" with field=form.marks_per_question %}</div>
+          <div class="col-md-4">{% include "components/field.html" with field=form.passing_percentage %}</div>
+          <div class="col-md-4">{% include "components/field.html" with field=form.multiple_mark_policy %}</div>
+          <div class="col-md-4 pt-md-4">{% include "components/field.html" with field=form.negative_marking %}</div>
+          <div class="col-md-4" data-show-when="id_negative_marking">{% include "components/field.html" with field=form.negative_marks %}</div>
+        </div>
+      </div>
+
+      <div class="form-section d-flex justify-content-end gap-2">
+        <a class="btn btn-light" href="{% url 'core:dashboard' %}">Cancel</a>
+        <button class="btn btn-primary btn-lg" type="submit">Continue <i class="bi bi-arrow-right"></i></button>
+      </div>
+    </section>
+  </div>
+  <div class="col-xl-4">
+    <section class="panel sticky-side">
+      <div class="panel-head"><h2 class="panel-title">What happens next</h2></div>
+      <div class="panel-body">
+        <ul class="checklist">
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">Sheet calibrated</div><div class="check-desc">Answer bubbles and the roll-number grid are found automatically.</div></div></li>
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">You confirm the answer key</div><div class="check-desc">Every extracted answer is shown beside the original document. One click to confirm.</div></div></li>
+          <li><span class="check-ic"><i class="bi bi-check-lg"></i></span><div><div class="check-title">Upload papers on the dashboard</div><div class="check-desc">They are checked automatically and results appear on the dashboard.</div></div></li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</form>
+{% endblock %}

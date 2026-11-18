@@ -53,9 +53,25 @@ def upload(request, exam_uid):
     skipped = [f"{o.name}: {s}" for o in outcomes for s in o.skipped_pages]
     if added:
         messages.success(request, f"{added} paper{'s' if added != 1 else ''} added from {len(files)} file(s).")
+        _auto_start(request, exam)
     for p in (problems + skipped)[:10]:
         messages.warning(request, p)
     return redirect(exam.get_absolute_url() + "#papers")
+
+
+def _auto_start(request, exam):
+    """Papers are checked automatically after upload when the examination is ready."""
+    from apps.processing import worker
+
+    if not exam.answer_key_version_id:
+        messages.info(request, "Attach a verified answer key to check these papers.")
+        return
+    try:
+        worker.enqueue(exam, request.user)
+    except worker.ProcessingError:
+        return  # already running — the queued papers are picked up next
+    worker.ensure_worker()
+    messages.info(request, "Checking the papers now.")
 
 
 def detail(request, uid):

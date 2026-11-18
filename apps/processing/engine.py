@@ -139,6 +139,13 @@ def check_roll_conflicts(paper: Paper) -> None:
         if flags != p.review_flags:
             p.review_flags = flags
             blocking = any(f["blocking"] for f in flags) or bool(p.uncertain_questions)
+            before = p.status
             if p.status in (Paper.Status.PROCESSED, Paper.Status.NEEDS_REVIEW):
                 p.status = Paper.Status.NEEDS_REVIEW if blocking else Paper.Status.PROCESSED
             p.save(update_fields=["review_flags", "status", "updated_at"])
+            if p.pk != paper.pk and p.status != before:
+                # Another paper became verified (or went back to review) because this
+                # roll-number conflict changed: mark it / refresh ranks too.
+                from apps.results.services import auto_evaluate
+
+                auto_evaluate(p)

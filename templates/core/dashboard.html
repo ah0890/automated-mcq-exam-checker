@@ -12,8 +12,8 @@
       <p class="hero-text">Every result here comes from the answer sheets you upload and an answer key you have verified. Nothing is marked until you approve it.</p>
     </div>
     <div class="d-flex gap-2 flex-wrap">
-      <a class="btn btn-hero btn-lg" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
-      <a class="btn btn-ghost btn-lg" href="{% url 'answerkeys:upload' %}"><i class="bi bi-key"></i> Upload answer key</a>
+      <a class="btn btn-hero btn-lg" href="{% url 'exams:quick_setup' %}"><i class="bi bi-plus-lg"></i> New examination</a>
+      <a class="btn btn-ghost btn-lg" href="#upload"><i class="bi bi-cloud-arrow-up"></i> Upload papers</a>
     </div>
   </div>
 </section>
@@ -34,18 +34,19 @@
       </div>
       <div class="panel-body">
         {% if upload_exams %}
-          {% include "papers/_uploader.html" with exams=upload_exams selected=default_upload_exam uploader_id="dash" %}
+          {% url 'core:dashboard' as dash_url %}
+          {% include "papers/_uploader.html" with exams=upload_exams selected=default_upload_exam uploader_id="dash" after_url=dash_url|add:"?exam={uid}#results" %}
         {% else %}
           <div class="empty py-4">
             <div class="empty-ic"><i class="bi bi-cloud-arrow-up"></i></div>
             {% if counts.exams %}
             <h3>All examinations are finalized</h3>
-            <p>Finalized results are locked. Create a new examination to upload another class's papers.</p>
+            <p>Finalized results are locked. Set up a new examination to check another class's papers.</p>
             {% else %}
-            <h3>Create an examination to upload papers</h3>
-            <p>Papers are uploaded into an examination so they are marked with its verified answer key and rules.</p>
+            <h3>First, set up the examination</h3>
+            <p>Upload the <strong>blank answer sheet</strong> and the <strong>official answer key</strong> once. Then upload the students' papers here — they are checked automatically.</p>
             {% endif %}
-            <a class="btn btn-primary" href="{% url 'exams:create' %}"><i class="bi bi-plus-lg"></i> New examination</a>
+            <a class="btn btn-primary btn-lg" href="{% url 'exams:quick_setup' %}"><i class="bi bi-plus-lg"></i> Set up examination</a>
           </div>
         {% endif %}
       </div>
@@ -68,7 +69,7 @@
                 <div class="check-title">{% if item.url and item.state != "done" %}<a class="text-reset" href="{% url item.url %}">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}</div>
                 <div class="check-desc">{{ item.desc }}</div>
               </div>
-              {% if item.url and item.state != "done" %}<a class="btn btn-light btn-sm" href="{% url item.url %}">Start</a>{% endif %}
+              {% if item.url and item.state != "done" %}<a class="btn btn-light btn-sm" href="{% url item.url %}">Start</a>{% elif item.anchor and item.state != "done" %}<a class="btn btn-light btn-sm" href="{{ item.anchor }}">Start</a>{% endif %}
             </li>
           {% endfor %}
         </ul>
@@ -76,6 +77,63 @@
     </section>
   </div>
 </div>
+
+
+{% if focus_results %}{% with fr=focus_results e=focus_results.exam s=focus_results.stats %}
+<section class="panel mb-4" id="results">
+  <div class="panel-head">
+    <div><h2 class="panel-title">Results — {{ e.name }}</h2>
+      <p class="panel-sub">{{ e.class_section }} · {{ e.exam_date|date:"j M Y" }} · marked against the verified answer key{% if not e.is_finalized %} · provisional{% endif %}</p></div>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if s.needs_review %}<a class="btn btn-primary btn-sm" href="{% url 'processing:queue' %}?exam={{ e.uid }}"><i class="bi bi-patch-check"></i> Review {{ s.needs_review }} paper{{ s.needs_review|pluralize }}</a>{% endif %}
+      <a class="btn btn-light btn-sm" href="{% url 'results:class' e.uid %}"><i class="bi bi-trophy"></i> Full results</a>
+      {% if s.evaluated %}
+        <a class="btn btn-light btn-sm" href="{% url 'reports:class_excel' e.uid %}"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
+        <a class="btn btn-light btn-sm" href="{% url 'reports:cards_pdf' e.uid %}"><i class="bi bi-person-vcard"></i> Result cards</a>
+      {% endif %}
+    </div>
+  </div>
+  {% if fr.running %}
+    <div class="px-4 pt-3"><div class="flash info m-0"><span class="spinner-border spinner-border-sm text-primary"></span><div>Papers are being checked. Refresh this page in a moment to see the latest results.</div></div></div>
+  {% endif %}
+  <div class="row g-0 border-bottom">
+    <div class="col-6 col-md-4 col-xl-2 stat"><div class="stat-label">Students</div><div class="stat-value">{{ s.students }}</div><div class="stat-foot">{{ s.evaluated }} marked</div></div>
+    <div class="col-6 col-md-4 col-xl-2 stat"><div class="stat-label">Class average</div><div class="stat-value">{% if s.average is not None %}{{ s.average|floatformat:"-2" }}{% else %}—{% endif %}</div><div class="stat-foot">{% if s.average_pct is not None %}{{ s.average_pct|floatformat:"-1" }}% of {{ s.max_marks|floatformat:"-2" }}{% else %}of {{ s.max_marks|floatformat:"-2" }}{% endif %}</div></div>
+    <div class="col-6 col-md-4 col-xl-2 stat"><div class="stat-label">Highest</div><div class="stat-value">{% if s.highest is not None %}{{ s.highest|floatformat:"-2" }}{% else %}—{% endif %}</div><div class="stat-foot">Lowest {% if s.lowest is not None %}{{ s.lowest|floatformat:"-2" }}{% else %}—{% endif %}</div></div>
+    <div class="col-6 col-md-4 col-xl-2 stat"><div class="stat-label">Passed</div><div class="stat-value text-success">{{ s.passed }}</div><div class="stat-foot">{% if s.pass_rate is not None %}{{ s.pass_rate|floatformat:"-1" }}% pass rate{% else %}—{% endif %}</div></div>
+    <div class="col-6 col-md-4 col-xl-2 stat"><div class="stat-label">Failed</div><div class="stat-value text-danger">{{ s.failed }}</div><div class="stat-foot">Pass mark {{ e.pass_marks|floatformat:"-2" }}</div></div>
+    <div class="col-6 col-md-4 col-xl-2 stat"><div class="stat-label">Needs review</div><div class="stat-value{% if s.needs_review %} text-warning-emphasis{% endif %}">{{ s.needs_review }}</div><div class="stat-foot">{% if s.pending %}{{ s.pending }} not marked yet{% else %}All marked{% endif %}</div></div>
+  </div>
+  {% if fr.rows %}
+    <div class="table-responsive" style="max-height:640px"><table class="table-x compact">
+      <thead><tr><th>Rank</th><th>Roll no.</th><th>Student</th><th>Correct</th><th>Incorrect</th><th>Unanswered</th><th>Marks</th><th>%</th><th>Result</th><th></th></tr></thead>
+      <tbody>
+      {% for row in fr.rows %}
+        <tr>
+          <td class="fw-bold tabular">{{ row.rank|default:"—" }}</td>
+          <td class="tabular nowrap">{{ row.roll|default:"—" }}</td>
+          <td>{% if row.name %}{{ row.name }}{% else %}<span class="text-muted small">Paper {{ row.paper.sequence }}</span>{% endif %}</td>
+          {% if row.result %}
+            <td class="tabular">{{ row.result.correct }}</td><td class="tabular">{{ row.result.incorrect }}</td><td class="tabular">{{ row.result.unanswered }}</td>
+            <td class="tabular fw-semibold">{{ row.result.obtained|floatformat:"-2" }}</td><td class="tabular">{{ row.result.percentage|floatformat:"-1" }}%</td>
+            <td>{% if row.result.passed %}<span class="pill pill-success">Pass</span>{% else %}<span class="pill pill-danger">Fail</span>{% endif %}</td>
+          {% else %}
+            <td colspan="5" class="small text-muted">{{ row.pending_reason }}</td>
+            <td><span class="pill pill-warning">Pending</span></td>
+          {% endif %}
+          <td class="text-end nowrap">
+            {% if row.paper.status == "needs_review" or row.paper.status == "failed" %}<a class="btn btn-primary btn-sm" href="{% url 'processing:review' row.paper.uid %}">Review</a>
+            {% else %}<a class="btn btn-light btn-sm" href="{{ row.paper.get_absolute_url }}">View</a>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  {% else %}
+    <div class="panel-body small text-muted"><i class="bi bi-info-circle me-1"></i>No papers uploaded for this examination yet — upload them above.</div>
+  {% endif %}
+</section>
+{% endwith %}{% endif %}
 
 {% if latest_results %}
 <section class="panel mb-4">

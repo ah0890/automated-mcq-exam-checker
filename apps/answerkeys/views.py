@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Count, Max, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from django.views.decorators.http import require_POST
@@ -91,6 +92,9 @@ def verify(request, uid):
                 else:
                     messages.success(request, f"“{version.key.title}” version {version.number} verified and saved "
                                               "to the Answer Key Library.")
+                    exam = _attach_to_pending_exam(request, version)
+                    if exam:
+                        return redirect(f"{reverse('core:dashboard')}?exam={exam.uid}#upload")
                     return redirect(version.get_absolute_url())
 
     extraction = version.extraction or {}
@@ -115,6 +119,26 @@ def verify(request, uid):
         "needs_confirmation": version.source_kind in ("png", "jpg") or "OCR" in extraction.get("method", ""),
         "filled": sum(1 for r in rows if r["value"]),
     })
+
+
+def _attach_to_pending_exam(request, version):
+    """Finish a dashboard quick setup: attach the newly verified key to its examination."""
+    from apps.exams.models import Examination
+    from apps.exams.services import assign_key
+
+    uid = request.session.pop("quick_setup_exam", None)
+    exam = Examination.objects.filter(uid=uid, answer_key_version__isnull=True).first() if uid else None
+    if not exam:
+        return None
+    version.refresh_from_db()  # the service verified a fresh copy
+    try:
+        assign_key(exam, version, request.user)
+    except ValidationError as exc:
+        messages.error(request, " ".join(exc.messages))
+        return None
+    messages.success(request, f"“{exam.name}” is ready. Upload the students' answer sheets below — they are "
+                              "checked automatically.")
+    return exam
 
 
 def detail(request, uid):

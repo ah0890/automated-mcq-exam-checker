@@ -30,6 +30,16 @@ def _greeting(now):
     return "Good evening"
 
 
+def _is_uuid(value) -> bool:
+    import uuid
+
+    try:
+        uuid.UUID(str(value))
+        return True
+    except ValueError:
+        return False
+
+
 def dashboard(request):
     checks = run_system_checks()
     healthy = all(c.ok for c in checks)
@@ -54,26 +64,40 @@ def dashboard(request):
     for exam in exams.filter(results__isnull=False).distinct()[:5]:
         latest_results.append({"exam": exam, "stats": class_stats(exam)})
     upload_exams = list(exams.filter(status=Examination.Status.ACTIVE))
-    # Default to the most recent examination that has a key but no papers yet.
-    default_exam = (next((e for e in upload_exams if e.answer_key_version_id and not e.paper_count), None)
-                    or next((e for e in upload_exams if e.answer_key_version_id), None))
+    # The examination in focus: chosen in the URL (e.g. after setup or checking),
+    # otherwise the most recent one with papers.
+    focus = exams.filter(uid=request.GET.get("exam")).first() if _is_uuid(request.GET.get("exam")) else None
+    if focus is None:
+        focus = next((e for e in exams if e.paper_count), None)
+    # Upload defaults to the focused examination, else the newest ready one without papers.
+    default_exam = (focus if focus and focus in upload_exams else None) or \
+        next((e for e in upload_exams if e.answer_key_version_id and not e.paper_count), None) or \
+        next((e for e in upload_exams if e.answer_key_version_id), None)
+
+    focus_results = None
+    if focus and focus.answer_key_version_id:
+        from apps.processing.models import ProcessingJob
+        from apps.results.analytics import class_rows
+
+        rows = class_rows(focus)
+        focus_results = {
+            "exam": focus, "rows": rows, "stats": class_stats(focus, rows),
+            "running": ProcessingJob.objects.filter(exam=focus, status__in=["queued", "running"]).exists(),
+        }
 
     # Every item reflects real application state.
+    has_ready_exam = exams.filter(answer_key_version__isnull=False).exists()
     setup = [
         {"title": "System components ready", "state": "done" if healthy else "fail",
          "desc": "OCR, image processing and storage are available." if healthy
          else "Some components need attention — see System health."},
-        {"title": "Add your answer-sheet layout", "state": "done" if counts["layouts"] else "todo",
-         "desc": "Upload a blank sheet once so bubbles can be located.", "url": "exams:layout_create"},
-        {"title": "Verify an answer key", "state": "done" if counts["verified_keys"] else "todo",
-         "desc": "Upload the official key and check every answer.", "url": "answerkeys:upload"},
-        {"title": "Create an examination", "state": "done" if counts["exams"] else "todo",
-         "desc": "Name, class, question count and marking rules.", "url": "exams:create"},
-        {"title": "Attach the key to the examination",
-         "state": "done" if exams.filter(answer_key_version__isnull=False).exists() else "todo",
-         "desc": "The examination is then ready for student papers."},
-        {"title": "Upload the class's answer sheets", "state": "done" if counts["papers"] else "todo",
-         "desc": "PDF, JPG or PNG — the whole class at once.", "url": "papers:upload_page"},
+        {"title": "Set up the examination", "state": "done" if has_ready_exam else "todo",
+         "desc": "Upload the blank answer sheet and the official answer key, then confirm the key.",
+         "url": "exams:quick_setup"},
+        {"title": "Upload the students' papers", "state": "done" if counts["papers"] else "todo",
+         "desc": "On this dashboard — they are checked automatically.", "anchor": "#upload"},
+        {"title": "Review doubtful papers", "state": "done" if counts["papers"] and not counts["to_review"] else "todo",
+         "desc": "Only papers with faint marks or unreadable roll numbers need you.", "url": "processing:queue"},
         {"title": "Import the class list", "state": "done" if counts["students"] else "optional",
          "desc": "Optional — shows student names next to roll numbers.", "url": "students:import"},
     ]
@@ -92,7 +116,8 @@ def dashboard(request):
         "counts": counts,
         "recent_exams": exams[:6],
         "upload_exams": upload_exams,
-        "latest_results": latest_results,
+        "latest_results": [r for r in latest_results if not focus or r["exam"].pk != focus.pk],
+        "focus_results": focus_results,
         "default_upload_exam": str(default_exam.uid) if default_exam else "",
         "data_dir": settings.DATA_DIR,
     })

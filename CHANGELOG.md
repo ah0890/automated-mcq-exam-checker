@@ -1,5 +1,24 @@
 # Changelog
 
+## Dashboard-first workflow (2026-11-18)
+
+### Added
+
+- **One-step examination setup** from the dashboard: blank answer sheet,
+  official answer key, details and marking rules on one form. The roll-number
+  grid is detected automatically and the number of questions is taken from
+  the key; confirming the key attaches it and returns to the dashboard.
+- **Automatic checking after upload**: the dashboard uploader starts
+  processing when the upload finishes, shows live progress, re-checks papers
+  added during a run, then shows the results.
+- **Results on the dashboard**: statistics and the ranked result table for
+  the examination in focus, with review, Excel and result-card actions.
+
+### Fixed
+
+- A paper that became verified because a duplicate roll number on another
+  paper was corrected is now marked and ranked immediately.
+
 ## Milestone 8 — Security, acceptance testing and documentation (2026-11-18)
 
 ### Added

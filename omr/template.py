@@ -19,6 +19,7 @@ from .errors import OMRError
 from .imaging import normalise_illumination
 
 TEMPLATE_VERSION = 1
+AUTO_ROLL = -1  # roll_digits value meaning "detect the roll-number grid automatically"
 
 
 @dataclass(frozen=True)
@@ -27,7 +28,7 @@ class LayoutSpec:
 
     options_per_question: int = 4
     option_labels: str = "ABCD"
-    roll_digits: int | None = None  # None = no roll-number bubble grid
+    roll_digits: int | None = None  # None = no roll-number grid; AUTO_ROLL = detect it
     question_order: str = "column"  # questions numbered down each block, then across
 
     def __post_init__(self):
@@ -112,6 +113,8 @@ def build_template(blank: np.ndarray, spec: LayoutSpec) -> SheetTemplate:
     groups = _cluster_by_size(circles)
     roll_group = answer_group = None
     roll_cols: list = []
+    if spec.roll_digits == AUTO_ROLL:
+        return _build_auto_roll(norm, markers, groups, spec)
     if spec.roll_digits:
         for g in groups:
             cols = _roll_grid(g, spec.roll_digits)
@@ -137,6 +140,40 @@ def build_template(blank: np.ndarray, spec: LayoutSpec) -> SheetTemplate:
             f"No answer grid with {spec.options_per_question} options per question was found.",
         )
 
+    h, w = norm.shape
+    return SheetTemplate(
+        frame_size=(w, h),
+        frame_markers=markers.tolist(),
+        option_labels=spec.option_labels,
+        answer_radius=float(np.median([c[2] for c in answer_group])),
+        questions=best_questions,
+        roll_radius=float(np.median([c[2] for c in roll_group])) if roll_group else None,
+        roll_columns=roll_cols,
+        reference=norm,
+    )
+
+
+def _build_auto_roll(norm, markers, groups, spec: LayoutSpec) -> SheetTemplate:
+    """Answers first (largest valid grid); then any other bubble group with
+    columns of exactly ten aligned bubbles (digits 0–9) is the roll grid."""
+    best_questions, answer_group = [], None
+    for g in groups:
+        qs = _answer_grid(g, spec)
+        if len(qs) > len(best_questions):
+            best_questions, answer_group = qs, g
+    if not best_questions:
+        raise OMRError("calibration_answer_grid",
+                       f"No answer grid with {spec.options_per_question} options per question was found.")
+    roll_group, roll_cols = None, []
+    for g in groups:
+        if g is answer_group or len(g) < 10:
+            continue
+        r = np.median([c[2] for c in g])
+        digits = sum(1 for _, members in _columns(g, r) if len(members) == 10)
+        cols = _roll_grid(g, digits) if digits else None
+        if cols:
+            roll_group, roll_cols = g, cols
+            break
     h, w = norm.shape
     return SheetTemplate(
         frame_size=(w, h),

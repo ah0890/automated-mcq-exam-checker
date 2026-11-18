@@ -31,7 +31,8 @@ def create_layout(*, name, code, option_labels, roll_digits, question_order, upl
     template.save(data_path(template_dir))
     _write_preview(template, data_path(f"{folder}/preview.png"))
     layout = SheetLayout.objects.create(
-        uid=uid, name=name, code=code, option_labels=option_labels, roll_digits=roll_digits or None,
+        uid=uid, name=name, code=code, option_labels=option_labels,
+        roll_digits=len(template.roll_columns) or None,  # as detected (also for automatic detection)
         question_order=question_order, capacity=template.capacity, blank_path=stored.relative_path,
         blank_name=stored.original_name, blank_sha256=stored.sha256, template_dir=template_dir, created_by=user,
     )

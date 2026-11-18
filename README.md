@@ -71,18 +71,24 @@ copy .env.example .env          # adjust TESSERACT_CMD or MCQ_DATA_DIR if needed
 
 Open <http://127.0.0.1:8000> and sign in.
 
-## Teacher workflow
+## Teacher workflow (all from the dashboard)
 
-1. **Sheet Layouts → Add layout** — upload a blank answer sheet (once per design).
-2. **Answer Key Library → Upload** — upload the official key, compare every
-   answer with the document, then *Verify & save*.
-3. **New examination** — set the rules, then attach the verified key.
-4. **Dashboard → Upload student papers** — choose the examination and drop in
-   the class's files.
-5. **Process papers** on the examination page.
-6. **Manual Verification** — resolve anything flagged.
-7. **Class Results** — check, then **Finalize results**.
-8. **Reports** — download the Excel result sheet and PDF result cards.
+1. **New examination** — upload the blank answer sheet and the official
+   answer key on one form, and enter the name, class, date and marking
+   rules. The sheet is calibrated (roll-number grid detected automatically)
+   and the key is read; the number of questions comes from the key.
+2. **Confirm the answer key** — every extracted answer is shown beside the
+   original document; click *Verify & save key*.
+3. **Upload & check** — back on the dashboard, drop in the students' papers
+   (separate files or one PDF of the whole class). They are checked
+   automatically and the results appear on the dashboard.
+4. **Review** — only papers with doubtful marks or roll numbers need you;
+   once confirmed they are marked and ranked.
+5. **Finalize** on Class Results, then download the Excel result sheet and
+   PDF result cards.
+
+The individual pages (Sheet Layouts, Answer Key Library, Examinations,
+Processing Center) remain available for finer control.
 
 ## Commands
 

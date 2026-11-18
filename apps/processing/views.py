@@ -32,12 +32,19 @@ def _png(data: bytes) -> HttpResponse:
 @require_POST
 def start(request, exam_uid):
     exam = get_object_or_404(Examination, uid=exam_uid)
+    wants_json = request.headers.get("x-requested-with") == "XMLHttpRequest"
     try:
         job = worker.enqueue(exam, request.user)
     except worker.ProcessingError as exc:
+        if wants_json:
+            active = exam.processing_jobs.filter(status__in=[ProcessingJob.Status.QUEUED,
+                                                              ProcessingJob.Status.RUNNING]).exists()
+            return JsonResponse({"started": False, "running": active, "error": str(exc)})
         messages.error(request, str(exc))
     else:
         worker.ensure_worker()
+        if wants_json:
+            return JsonResponse({"started": True, "running": True, "job": job.as_dict()})
         messages.success(request, f"Processing {job.total} paper{'s' if job.total != 1 else ''}. "
                                   "You can leave this page — progress is saved paper by paper.")
     return redirect(exam.get_absolute_url() + "#processing")

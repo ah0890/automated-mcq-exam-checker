@@ -60,3 +60,33 @@ class AssignKeyForm(forms.Form):
             .select_related("key").order_by("key__title", "-number"))
         self.fields["version"].label_from_instance = (
             lambda v: f"{v.key.title} · version {v.number} · {v.num_questions} questions")
+
+
+class QuickSetupForm(forms.Form):
+    """Everything needed to start an examination, on one form."""
+
+    name = forms.CharField(max_length=150, label="Examination name",
+                           widget=forms.TextInput(attrs={"placeholder": "e.g. General Knowledge Test"}))
+    subject = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"placeholder": "e.g. General Science"}))
+    class_section = forms.CharField(max_length=60, label="Class / section",
+                                    widget=forms.TextInput(attrs={"placeholder": "e.g. Grade 10 – B"}))
+    exam_date = forms.DateField(label="Examination date", widget=forms.DateInput(attrs={"type": "date"}))
+    option_labels = forms.ChoiceField(choices=LABEL_CHOICES, initial="ABCD", label="Options per question")
+    marks_per_question = forms.DecimalField(min_value=0.01, max_digits=6, decimal_places=2, initial=1,
+                                            label="Marks per correct answer")
+    passing_percentage = forms.DecimalField(min_value=0, max_value=100, max_digits=5, decimal_places=2,
+                                            initial=40, label="Passing percentage (%)")
+    negative_marking = forms.BooleanField(required=False, label="Negative marking")
+    negative_marks = forms.DecimalField(min_value=0, max_digits=6, decimal_places=2, required=False, initial=0,
+                                        label="Marks deducted per wrong answer")
+    multiple_mark_policy = forms.ChoiceField(choices=Examination.MultipleMarkPolicy.choices,
+                                             initial=Examination.MultipleMarkPolicy.ZERO,
+                                             label="Multiple marked answers")
+    blank_sheet = forms.FileField(label="Blank (unsolved) answer sheet")
+    answer_key = forms.FileField(label="Official answer key")
+
+    def clean(self):
+        data = super().clean()
+        if data.get("negative_marking") and not data.get("negative_marks"):
+            self.add_error("negative_marks", "Enter the marks deducted per wrong answer, or turn negative marking off.")
+        return data
